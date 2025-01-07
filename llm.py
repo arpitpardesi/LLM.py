@@ -19,5 +19,5 @@ while True:
     convoHistory.append({'role': 'assistant', 'content': bot})
     print('\n')
 
-    if quest.lower() == 'exit':
+    if quest.lower() == 'exit' or quest.lower() == 'bye':
         break
