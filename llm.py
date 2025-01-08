@@ -1,14 +1,14 @@
 import ollama
 from pymongo import MongoClient
 import uuid
-from urllib.parse import quote_plus
+import cred
 import certifi
 
 
 session_id = str(uuid.uuid4())
 
 
-MONGO_URI = f"mongodb+srv://{db_username}:{db_password}@cosmos.f2pie.mongodb.net/?retryWrites=true&w=majority&appName=Cosmos"  # Replace with your MongoDB connection URI
+MONGO_URI = f"mongodb+srv://{cred.db_username}:{cred.db_password}@cosmos.f2pie.mongodb.net/?retryWrites=true&w=majority&appName=Cosmos"  # Replace with your MongoDB connection URI
 client = MongoClient(MONGO_URI)
 db = client.cosmosBot
 conversation_collection = db.conversation_hist
