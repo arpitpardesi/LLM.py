@@ -60,18 +60,20 @@ def cosmosResponse(convo):
     return bot
 
 
-# print("Cosmos: Hi I am your bot. How can I assist you today?", end='\n')
-# save_message_to_mongo(role='assistant', content="Hi I am your bot. How can I assist you today?")
-
 convoHistory = load_conversation_history()
 
-res = cosmosResponse(convo=convoHistory)
-print(f"Cosmos: {res}", end='')
-print('\n')
+if convoHistory[-1].get('role') == "assistant":
+    print(f"Cosmos: {convoHistory[-1].get('content')}\n")
+
+elif convoHistory[-1].get('role') == "user":
+    res = cosmosResponse(convo=convoHistory)
+    print(f"Cosmos: {res}", end='')
+    print('\n')
+
 while True:
     quest = input("You: ")
     convoHistory.append({'role': 'user', 'content': quest})
-    save_message_to_mongo(role='user', content=quest)
+    # save_message_to_mongo(role='user', content=quest)
     #
     res = cosmosResponse(convo=convoHistory)
     print(f"Cosmos: {res}", end='')
@@ -85,5 +87,5 @@ while True:
 
     print('\n')
 
-    if quest.lower() == 'exit' or quest.lower() == 'bye':
+    if quest.lower() == 'exit' or quest.lower() == 'bye' or quest.lower() == 'bye cosmos':
         break
