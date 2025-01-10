@@ -14,15 +14,6 @@ db = client.cosmosBot
 conversation_collection = db.conversation_hist
 convoHistory = []
 
-
-# def load_conversation(session_id):
-#     document = conversation_collection.find_one({"session_id": session_id})
-#     if document:
-#         return document["conversation"]
-#     return []
-#
-
-
 def save_message_to_mongo(role, content):
     try:
         conversation_collection.insert_one({
@@ -52,12 +43,14 @@ def cosmosResponse(convo):
         stream=True
     )
 
+    print(f"Cosmos: ")
     for chunk in response:
-        # print(chunk['message']['content'], end='', flush=True)
+        print(chunk['message']['content'], end='', flush=True)
         bot += chunk['message']['content']
+    print("\n")
     convoHistory.append({'role': 'assistant', 'content': bot})
-    # save_message_to_mongo(role='assistant', content=bot)
-    return bot
+    save_message_to_mongo(role='assistant', content=bot)
+    # return bot
 
 
 convoHistory = load_conversation_history()
@@ -66,26 +59,22 @@ if convoHistory[-1].get('role') == "assistant":
     print(f"Cosmos: {convoHistory[-1].get('content')}\n")
 
 elif convoHistory[-1].get('role') == "user":
-    res = cosmosResponse(convo=convoHistory)
-    print(f"Cosmos: {res}", end='')
-    print('\n')
+    cosmosResponse(convo=convoHistory)
+
+    # res = cosmosResponse(convo=convoHistory)
+    # print(f"Cosmos: {res}", end='')
+    # print('\n')
 
 while True:
     quest = input("You: ")
     convoHistory.append({'role': 'user', 'content': quest})
-    # save_message_to_mongo(role='user', content=quest)
-    #
-    res = cosmosResponse(convo=convoHistory)
-    print(f"Cosmos: {res}", end='')
+    save_message_to_mongo(role='user', content=quest)
 
-    # for chunk in response:
-    #     print(chunk['message']['content'], end='', flush=True)
-    #     bot += chunk['message']['content']
-    # convoHistory.append({'role': 'assistant', 'content': bot})
+    cosmosResponse(convo=convoHistory)
 
-    # save_message_to_mongo(role='assistant', content=bot)
-
-    print('\n')
+    # res = cosmosResponse(convo=convoHistory)
+    # print(f"Cosmos: {res}", end='')
+    # print('\n')
 
     if quest.lower() == 'exit' or quest.lower() == 'bye' or quest.lower() == 'bye cosmos':
         break
