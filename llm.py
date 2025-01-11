@@ -43,7 +43,7 @@ def cosmosResponse(convo):
         stream=True
     )
 
-    print(f"Cosmos: ")
+    print(f"Cosmos: ", end='')
     for chunk in response:
         print(chunk['message']['content'], end='', flush=True)
         bot += chunk['message']['content']
@@ -76,5 +76,5 @@ while True:
     # print(f"Cosmos: {res}", end='')
     # print('\n')
 
-    if quest.lower() == 'exit' or quest.lower() == 'bye' or quest.lower() == 'bye cosmos':
+    if quest.lower() == 'exit' or quest.lower() == 'bye' or quest.lower() == 'bye cosmos' or quest.lower() == 'see you soon':
         break
