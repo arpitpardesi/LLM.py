@@ -6,6 +6,7 @@ import uuid
 import cred
 import certifi
 
+dialogID = 0
 session_id = str(uuid.uuid4())
 
 MONGO_URI = f"mongodb+srv://{cred.db_username}:{cred.db_password}@cosmos.f2pie.mongodb.net/?retryWrites=true&w=majority&appName=Cosmos"  # Replace with your MongoDB connection URI
@@ -14,16 +15,21 @@ db = client.cosmosBot
 conversation_collection = db.conversation_hist
 convoHistory = []
 
-def save_message_to_mongo(role, content):
+
+def save_message_to_mongo(role, content, dialogID):
+    dialogID += 1
     try:
         conversation_collection.insert_one({
             "role": role,
             "content": content,
             "timestamp": datetime.datetime.now(datetime.UTC),
-            "session_id": session_id
+            "session_id": session_id,
+            "dialogID": dialogID
         })
+        dialogID += 1
     except Exception as e:
         print("Error saving message to MongoDB:", e)
+
 
 
 def load_conversation_history():
@@ -36,24 +42,24 @@ def load_conversation_history():
 
 
 def cosmosResponse(convo):
-    bot = ''
+    bot = """"""
     response = ollama.chat(
         model='llama3.2',
         messages=convo,
         stream=True
     )
-
     print(f"Cosmos: ", end='')
     for chunk in response:
         print(chunk['message']['content'], end='', flush=True)
         bot += chunk['message']['content']
     print("\n")
     convoHistory.append({'role': 'assistant', 'content': bot})
-    save_message_to_mongo(role='assistant', content=bot)
+    save_message_to_mongo(role='assistant', content=bot, dialogID=dialogID)
     # return bot
 
 
 convoHistory = load_conversation_history()
+dialogID = len(convoHistory)
 
 if convoHistory[-1].get('role') == "assistant":
     print(f"Cosmos: {convoHistory[-1].get('content')}\n")
@@ -67,8 +73,8 @@ elif convoHistory[-1].get('role') == "user":
 
 while True:
     quest = input("You: ")
-    convoHistory.append({'role': 'user', 'content': quest})
-    save_message_to_mongo(role='user', content=quest)
+    convoHistory.append({'role': 'user', 'content': quest, 'dialogID': dialogID})
+    save_message_to_mongo(role='user', content=quest, dialogID=dialogID)
 
     cosmosResponse(convo=convoHistory)
 

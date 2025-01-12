@@ -13,7 +13,7 @@ import uuid
 import cred
 import certifi
 
-from uploadData import save_message_to_mongo
+# from uploadData import save_message_to_mongo
 
 session_id = str(uuid.uuid4())
 
@@ -24,7 +24,28 @@ db = client.cosmosBot
 conversation_collection = db.conversation_hist
 
 # Define the specific date (e.g., "2025-01-01")
-specific_date = datetime(2025,1,9)
+# specific_date = datetime(2025,1,9)
+
+# Create the start and end of the date range
+# start_timestamp = specific_date
+# end_timestamp = specific_date + timedelta(days=1)
+
+# Delete documents with a timestamp in the specified range
+# result = conversation_collection.delete_many({
+#     "timestamp": {
+#         "$gte": start_timestamp,
+#         "$lt": end_timestamp
+#     }
+# })
+
+history = list(conversation_collection.find().sort("timestamp", -1))
+
+print(len(history))
+
+date = history[1].get('timestamp')
+print(date)
+# Define the specific date (e.g., "2025-01-01")
+specific_date = datetime(date)
 
 # Create the start and end of the date range
 start_timestamp = specific_date
@@ -38,5 +59,6 @@ result = conversation_collection.delete_many({
     }
 })
 
+print(result)
 # Print the number of deleted documents
-print(f"Deleted {result.deleted_count} documents.")
+# print(f"Deleted {result.deleted_count} documents.")
