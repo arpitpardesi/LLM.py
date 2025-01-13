@@ -45,20 +45,25 @@ print(len(history))
 date = history[1].get('timestamp')
 print(date)
 # Define the specific date (e.g., "2025-01-01")
-specific_date = datetime(date)
+# specific_date = datetime(date)
 
 # Create the start and end of the date range
-start_timestamp = specific_date
-end_timestamp = specific_date + timedelta(days=1)
+# start_timestamp = specific_date
+# end_timestamp = specific_date + timedelta(days=1)
 
-# Delete documents with a timestamp in the specified range
+# # Delete documents with a timestamp in the specified range
+# result = conversation_collection.delete_many({
+#     "timestamp": {
+#         "$gte": start_timestamp,
+#         "$lt": end_timestamp
+#     }
+# })
+
 result = conversation_collection.delete_many({
-    "timestamp": {
-        "$gte": start_timestamp,
-        "$lt": end_timestamp
+    "dialogID": {
+        "$gte": 545
     }
 })
 
-print(result)
 # Print the number of deleted documents
-# print(f"Deleted {result.deleted_count} documents.")
+print(f"Deleted {result.deleted_count} documents.")
