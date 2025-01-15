@@ -15,12 +15,12 @@ conversation_collection = db.conversation_hist
 
 def load_conversation_history():
     try:
-        history = list(conversation_collection.find().sort("timestamp", -1))
-        return [{"role": h["role"], "content": h["content"]} for h in history]
+        history = list(conversation_collection.find().sort("timestamp", 1))
+        return [{"role": h["role"], "content": h["content"], "timestamp":h["timestamp"]} for h in history]
     except Exception as e:
         print("Error loading conversation history:", e)
         return []
 
 convo = load_conversation_history()
 
-print(convo[0].get('role'))
+# print(convo[0].get('role'))

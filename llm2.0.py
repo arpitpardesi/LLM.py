@@ -14,7 +14,7 @@ session_id = str(uuid.uuid4())
 MONGO_URI = f"mongodb+srv://{cred.db_username}:{cred.db_password}@cosmos.f2pie.mongodb.net/?retryWrites=true&w=majority&appName=Cosmos"  # Replace with your MongoDB connection URI
 client = MongoClient(MONGO_URI, tlsCAFile=certifi.where())
 db = client.cosmosBot
-conversation_collection = db.conversation_hist
+conversation_collection = db.myUbot
 convoHistory = []
 
 def save_message_to_mongo(role, content, dialogID):
@@ -36,7 +36,7 @@ def save_message_to_mongo(role, content, dialogID):
 def load_conversation_history():
     try:
         history = list(conversation_collection.find().sort("timestamp", 1))
-        return [{"role": h["role"], "content": h["content"]} for h in history]
+        return [{"role": h["role"], "content": h["content"], "dialogID":dialogID} for h in history]
     except Exception as e:
         print("Error loading conversation history:", e)
         return []
@@ -74,7 +74,7 @@ elif convoHistory[-1].get('role') == "user":
 
 while True:
     quest = input("You: ")
-    convoHistory.append({'role': 'user', 'content': quest, 'dialogID': dialogID})
+    convoHistory.append({'role': 'user', 'content': quest})
     save_message_to_mongo(role='user', content=quest, dialogID=dialogID)
 
     cosmosResponse(convo=convoHistory)
