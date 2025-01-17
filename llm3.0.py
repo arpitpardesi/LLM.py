@@ -6,6 +6,7 @@ import uuid
 import cred
 import certifi
 
+
 def load_conversation_history():
     try:
         history = list(conversation_collection.find().sort("timestamp", 1))
@@ -20,7 +21,7 @@ session_id = str(uuid.uuid4())
 MONGO_URI = f"mongodb+srv://{cred.db_username}:{cred.db_password}@cosmos.f2pie.mongodb.net/?retryWrites=true&w=majority&appName=Cosmos"  # Replace with your MongoDB connection URI
 client = MongoClient(MONGO_URI, tlsCAFile=certifi.where())
 db = client.cosmosBot
-conversation_collection = db.conversation_hist
+conversation_collection = db.myBotV2
 convoHistory = load_conversation_history()
 dialogID = len(convoHistory)
 
@@ -39,14 +40,15 @@ def save_message_to_mongo(role, content, dialogID):
     except Exception as e:
         print("Error saving message to MongoDB:", e)
 
+
 def cosmosResponse(convo, dialogID):
     bot = """"""
     response = ollama.chat(
-        model='llama3.2',
+        model='phi4',
         messages=convo,
         stream=True
     )
-    print(f"Cosmos: ", end='')
+    print(f"Anaya: ", end='')
     for chunk in response:
         print(chunk['message']['content'], end='', flush=True)
         bot += chunk['message']['content']
@@ -55,8 +57,11 @@ def cosmosResponse(convo, dialogID):
     save_message_to_mongo(role='assistant', content=bot, dialogID=dialogID)
     # return bot
 
-if convoHistory[-1].get('role') == "assistant":
-    print(f"Cosmos: {convoHistory[-1].get('content')}\n")
+
+if dialogID == 0:
+    pass
+elif convoHistory[-1].get('role') == "assistant":
+    print(f"Anaya: {convoHistory[-1].get('content')}\n")
 
 elif convoHistory[-1].get('role') == "user":
     cosmosResponse(convo=convoHistory, dialogID=dialogID)

@@ -1,12 +1,5 @@
 from pymongo import MongoClient
 from datetime import datetime, timedelta
-
-# Connect to the MongoDB server
-client = MongoClient("mongodb://localhost:27017/")
-
-# Access the desired database and collection
-db = client["your_database_name"]
-collection = db["your_collection_name"]
 import ollama
 from pymongo import MongoClient
 import uuid
@@ -22,15 +15,16 @@ MONGO_URI = f"mongodb+srv://{cred.db_username}:{cred.db_password}@cosmos.f2pie.m
 client = MongoClient(MONGO_URI, tlsCAFile=certifi.where())
 db = client.cosmosBot
 # conversation = db.conversation_hist
-conversation = db.myUbot
+conversation = db.myBotV2
+# conversation = db.myUbot
 
-history = list(collection.find().sort("timestamp", -1))
+history = list(conversation.find().sort("timestamp", -1))
 
 # print(len(history))
 
 date = history[0].get('timestamp')
 
-print(history[0].get('content'), date)
+# print(history[0].get('content'), date)
 # Define the specific date (e.g., "2025-01-01")
 # specific_date = datetime(date)
 
@@ -70,6 +64,10 @@ def usingDialogID(ID, conversation):
     })
     return result.deleted_count
 
-
+# result = conversation.delete_many({
+#         "dialogID": {
+#             "$gte": 971
+#         }
+#     })
 # Print the number of deleted documents
-print(f"Deleted {deletedAll(conversation=conversation)} documents.")
+print(f"Deleted {usingDialogID(1,   conversation=conversation)} documents.")
