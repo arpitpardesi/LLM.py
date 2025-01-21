@@ -70,4 +70,4 @@ def usingDialogID(ID, conversation):
 #         }
 #     })
 # Print the number of deleted documents
-print(f"Deleted {usingDialogID(1,   conversation=conversation)} documents.")
+print(f"Deleted {usingDialogID(19,   conversation=conversation)} documents.")
