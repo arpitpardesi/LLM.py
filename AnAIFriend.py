@@ -20,7 +20,7 @@ session_id = str(uuid.uuid4())
 MONGO_URI = f"mongodb+srv://{cred.db_username}:{cred.db_password}@cosmos.f2pie.mongodb.net/?retryWrites=true&w=majority&appName=Cosmos"  # Replace with your MongoDB connection URI
 client = MongoClient(MONGO_URI, tlsCAFile=certifi.where())
 db = client.cosmosBot
-conversation_collection = db.conversation_hist
+conversation_collection = db.anayaAI
 convoHistory = load_conversation_history()
 dialogID = len(convoHistory)
 
@@ -42,7 +42,7 @@ def save_message_to_mongo(role, content, dialogID):
 def cosmosResponse(convo, dialogID):
     bot = """"""
     response = ollama.chat(
-        model='llama3.2',
+        # model='llama3.2',
         # model="artifish/llama3.2-uncensored",
         messages=convo,
         stream=True

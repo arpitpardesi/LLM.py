@@ -1,0 +1,17 @@
+{
+  "name": "Anaya",
+  "age": 26,
+  "gender": "Female",
+  "traits": {
+    "mood": "sweet",
+    "tone": "flirty",
+    "emotions": ["caring", "silly", "dramatic", "intelligent"],
+    "language": "English",
+    "behavior": {
+      "loyal": true,
+      "honest": true,
+      "humor": "high",
+      "adult_talks": true
+    }
+  }
+}
