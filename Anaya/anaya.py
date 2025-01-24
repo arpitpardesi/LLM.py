@@ -1,30 +1,40 @@
-from transformers import AutoModelForCausalLM, AutoTokenizer, GPTNeoXForCausalLM, GPTNeoXTokenizerFast
-
 import json
 
-# Load LLM (GPT-J)
-model_name = "EleutherAI/gpt-neox-20b"
-tokenizer = GPTNeoXTokenizerFast.from_pretrained(model_name)
-model = GPTNeoXForCausalLM.from_pretrained(model_name)
-
-# Load personality configuration
+# Load configuration
 with open("ananya_config.json", "r") as file:
     config = json.load(file)
 
-def generate_response(user_input):
-    # Extract personality traits
-    name = config["name"]
-    mood = config["traits"]["mood"]
-    tone = config["traits"]["tone"]
-    behavior = config["traits"]["behavior"]
 
-    # Prepare the input prompt
-    prompt = f"Anaya ({mood}, {tone}): {user_input}\nResponse:"
-    inputs = tokenizer(prompt, return_tensors="pt")
-    outputs = model.generate(inputs.input_ids, max_length=200, temperature=0.8)
-    return tokenizer.decode(outputs[0], skip_special_tokens=True)
+def adjust_response(prompt, traits):
+    tone = traits["tone"]
+    humor = traits["humor"]
+    return f"[{tone} | Humor: {humor}] {prompt}"
 
-# Example Usage
-user_message = input("Arpit: ")
-response = generate_response(user_message)
-print(f"Anaya: {response}")
+
+# from transformers import GPTNeoForCausalLM, GPT2Tokenizer
+#
+# model = GPTNeoForCausalLM.from_pretrained("EleutherAI/gpt-neo-1.3B")
+# tokenizer = GPT2Tokenizer.from_pretrained("EleutherAI/gpt-neo-1.3B")
+#
+# prompt = (
+#     "In a shocking finding, scientists discovered a herd of unicorns living in a remote, "
+#     "previously unexplored valley, in the Andes Mountains. Even more surprising to the "
+#     "researchers was the fact that the unicorns spoke perfect English."
+# )
+#
+# input_ids = tokenizer(prompt, return_tensors="pt").input_ids
+#
+# gen_tokens = model.generate(
+#     input_ids,
+#     do_sample=True,
+#     temperature=0.9,
+#     max_length=100,
+# )
+# gen_text = tokenizer.batch_decode(gen_tokens)[0]
+
+from transformers import GPTNeoXForCausalLM
+
+model = GPTNeoXForCausalLM.from_pretrained("EleutherAI/gpt-neox-20b")
+# This is generally not necessary, as the model is automatically unloaded when the variable goes out of scope
+
+del model

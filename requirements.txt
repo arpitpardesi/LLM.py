@@ -1,0 +1,6 @@
+transformers
+ollama
+certifi
+pymongo
+openai
+torch

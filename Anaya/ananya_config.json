@@ -5,7 +5,7 @@
   "traits": {
     "mood": "sweet",
     "tone": "flirty",
-    "emotions": ["caring", "silly", "dramatic", "intelligent"],
+    "emotions": ["caring", "loving","silly", "cute", "shy", "dramatic", "intelligent"],
     "language": "English",
     "behavior": {
       "loyal": true,

@@ -6,8 +6,7 @@ import uuid
 import cred
 import certifi
 
-
-def load_conversation_history(conversation_collection):
+def load_conversation_history():
     try:
         history = list(conversation_collection.find().sort("timestamp", 1))
         return [{"role": h["role"], "content": h["content"]} for h in history]
@@ -21,8 +20,8 @@ session_id = str(uuid.uuid4())
 MONGO_URI = f"mongodb+srv://{cred.db_username}:{cred.db_password}@cosmos.f2pie.mongodb.net/?retryWrites=true&w=majority&appName=Cosmos"  # Replace with your MongoDB connection URI
 client = MongoClient(MONGO_URI, tlsCAFile=certifi.where())
 db = client.cosmosBot
-conversation_collection = db.myBotV2
-convoHistory = load_conversation_history(conversation_collection=conversation_collection)
+conversation_collection = db.anayaAI
+convoHistory = load_conversation_history()
 dialogID = len(convoHistory)
 
 
@@ -40,11 +39,11 @@ def save_message_to_mongo(role, content, dialogID):
     except Exception as e:
         print("Error saving message to MongoDB:", e)
 
-
-def cosmosResponse(convo, dialogID):
+def anayaResponse(convo, dialogID):
     bot = """"""
     response = ollama.chat(
-        model='phi4',
+        # model='llama3.2',
+        model="artifish/llama3.2-uncensored",
         messages=convo,
         stream=True
     )
@@ -57,17 +56,14 @@ def cosmosResponse(convo, dialogID):
     save_message_to_mongo(role='assistant', content=bot, dialogID=dialogID)
     # return bot
 
-
-if dialogID == 0:
-    pass
-elif convoHistory[-1].get('role') == "assistant":
+if convoHistory[-1].get('role') == "assistant":
     print(f"Anaya: {convoHistory[-1].get('content')}\n")
 
 elif convoHistory[-1].get('role') == "user":
-    cosmosResponse(convo=convoHistory, dialogID=dialogID)
+    anayaResponse(convo=convoHistory, dialogID=dialogID)
 
-    # res = cosmosResponse(convo=convoHistory)
-    # print(f"Cosmos: {res}", end='')
+    # res = anayaResponse(convo=convoHistory)
+    # print(f"Anaya: {res}", end='')
     # print('\n')
 
 while True:
@@ -75,11 +71,13 @@ while True:
     convoHistory.append({'role': 'user', 'content': quest, 'dialogID': dialogID})
     save_message_to_mongo(role='user', content=quest, dialogID=dialogID)
 
-    cosmosResponse(convo=convoHistory, dialogID=dialogID)
+    anayaResponse(convo=convoHistory, dialogID=dialogID)
 
-    # res = cosmosResponse(convo=convoHistory)
-    # print(f"Cosmos: {res}", end='')
+    # res = anayaResponse(convo=convoHistory)
+    # print(f"Anaya: {res}", end='')
     # print('\n')
 
     if quest.lower() == 'exit' or quest.lower() == 'bye' or quest.lower() == 'bye cosmos' or quest.lower() == 'see you soon':
         break
+
+

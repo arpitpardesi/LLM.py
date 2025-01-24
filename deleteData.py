@@ -10,19 +10,22 @@ import certifi
 
 session_id = str(uuid.uuid4())
 
-
 MONGO_URI = f"mongodb+srv://{cred.db_username}:{cred.db_password}@cosmos.f2pie.mongodb.net/?retryWrites=true&w=majority&appName=Cosmos"  # Replace with your MongoDB connection URI
 client = MongoClient(MONGO_URI, tlsCAFile=certifi.where())
 db = client.cosmosBot
 # conversation = db.conversation_hist
-conversation = db.myBotV2
+# conversation = db.myBotV2
 # conversation = db.myUbot
+# conversation = db.anayaAI
 
-history = list(conversation.find().sort("timestamp", -1))
+bots = [db.conversation_hist, db.myBotV2, db.myUbot, db.anayaAI]
+
+# history = list(conversation.find().sort("timestamp", -1))
 
 # print(len(history))
 
-date = history[0].get('timestamp')
+# date = history[0].get('timestamp')
+
 
 # print(history[0].get('content'), date)
 # Define the specific date (e.g., "2025-01-01")
@@ -34,14 +37,16 @@ date = history[0].get('timestamp')
 
 # # Delete documents with a timestamp in the specified range
 def usingDatetime(start_timestamp, conversation):
-    end_timestamp = start_timestamp + timedelta(days=1)
+    days = input("Days from the start date: ")
+    end_timestamp = start_timestamp + timedelta(days=days)
     result = conversation.delete_many({
         "timestamp": {
             "$gte": start_timestamp,
             "$lt": end_timestamp
-       }
+        }
     })
     return result.deleted_count
+
 
 # Delete documents with a timestamp in the specified range
 
@@ -50,13 +55,16 @@ def deletedAll(conversation):
 
     return result
 
-def usingExcatDate(date, conversation):
+
+def usingExactDate(date, conversation):
     result = conversation.delete_many({
         "timestamp": date
     })
     return result.deleted_count
 
-def usingDialogID(ID, conversation):
+
+def usingDialogID(conversation):
+    ID = int(input('Enter Dialog ID: '))
     result = conversation.delete_many({
         "dialogID": {
             "$gte": ID
@@ -64,10 +72,26 @@ def usingDialogID(ID, conversation):
     })
     return result.deleted_count
 
-# result = conversation.delete_many({
-#         "dialogID": {
-#             "$gte": 971
-#         }
-#     })
-# Print the number of deleted documents
-print(f"Deleted {usingDialogID(19,   conversation=conversation)} documents.")
+
+print("Bot names: ")
+for i in range(0, len(bots)):
+    print(f'{i + 1}. {bots[i]}')
+
+bot = int(input("\nselect a bot first: "))
+bot = bots[bot - 1]
+print(
+    "\nMenu: \n1. Delete all Documents\n2. Delete using timestamp \n3. Delete using exact Date \n4. Delete using Dialog ID ")
+menu = int(input('Select operation to perform: '))
+
+match menu:
+    case 1:
+        print(deletedAll(conversation=bot))
+    case 2:
+        start_timestamp = input("Start timestamp: ")
+        print(usingDatetime(start_timestamp=start_timestamp, conversation=bot))
+    case 3:
+        date = input('Enter date: ')
+        print(usingExactDate(date=date, conversation=bot))
+    case 4:
+        # ID = int(input('Enter Dialog ID: '))
+        print(f'Documents deleted: {usingDialogID(conversation=bot)}')
