@@ -77,7 +77,7 @@ while True:
     # print(f"Anaya: {res}", end='')
     # print('\n')
 
-    if quest.lower() == 'exit' or quest.lower() == 'bye' or quest.lower() == 'bye cosmos' or quest.lower() == 'see you soon':
+    if quest.lower() == 'exit' or quest.lower() == 'bye' or quest.lower() == 'bye anaya' or quest.lower() == 'see you soon':
         break
 
 
