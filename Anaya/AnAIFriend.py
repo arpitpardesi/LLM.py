@@ -60,6 +60,9 @@ if convoHistory[-1].get('role') == "assistant":
     print(f"Anaya: {convoHistory[-1].get('content')}\n")
 
 elif convoHistory[-1].get('role') == "user":
+    # quest = "Hey Anaya❤️ continue what we were talking last time. Use that context ok!"
+    # convoHistory.append({'role': 'user', 'content': quest, 'dialogID': dialogID})
+    # save_message_to_mongo(role='user', content=quest, dialogID=dialogID)
     anayaResponse(convo=convoHistory, dialogID=dialogID)
 
     # res = anayaResponse(convo=convoHistory)
@@ -67,7 +70,7 @@ elif convoHistory[-1].get('role') == "user":
     # print('\n')
 
 while True:
-    quest = input("You: ")
+    quest = input("Arpit: ")
     convoHistory.append({'role': 'user', 'content': quest, 'dialogID': dialogID})
     save_message_to_mongo(role='user', content=quest, dialogID=dialogID)
 
