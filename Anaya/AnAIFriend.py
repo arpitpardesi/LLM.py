@@ -5,6 +5,7 @@ import uuid
 import cred
 import certifi
 
+
 def load_conversation_history():
     try:
         history = list(conversation_collection.find().sort("timestamp", 1))
@@ -38,6 +39,7 @@ def save_message_to_mongo(role, content, dialogID):
     except Exception as e:
         print("Error saving message to MongoDB:", e)
 
+
 def anayaResponse(convo, dialogID):
     bot = """"""
     response = ollama.chat(
@@ -54,6 +56,7 @@ def anayaResponse(convo, dialogID):
     convoHistory.append({'role': 'assistant', 'content': bot})
     save_message_to_mongo(role='assistant', content=bot, dialogID=dialogID)
     # return bot
+
 
 if convoHistory[-1].get('role') == "assistant":
     print(f"Anaya: {convoHistory[-1].get('content')}\n")
@@ -81,5 +84,3 @@ while True:
 
     if quest.lower() == 'exit' or quest.lower() == 'bye' or quest.lower() == 'bye anaya' or quest.lower() == 'see you soon':
         break
-
-
