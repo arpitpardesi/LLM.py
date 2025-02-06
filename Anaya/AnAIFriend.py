@@ -64,10 +64,6 @@ if convoHistory[-1].get('role') == "assistant":
 elif convoHistory[-1].get('role') == "user":
     anayaResponse(convo=convoHistory, dialogID=dialogID)
 
-    # res = anayaResponse(convo=convoHistory)
-    # print(f"Anaya: {res}", end='')
-    # print('\n')
-
 while True:
     quest = input("Arpit: ")
     convoHistory.append({'role': 'user', 'content': quest, 'dialogID': dialogID})
