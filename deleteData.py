@@ -18,7 +18,7 @@ db = client.cosmosBot
 # conversation = db.myUbot
 # conversation = db.anayaAI
 
-bots = [db.conversation_hist, db.myBotV2, db.myUbot, db.anayaAI]
+bots = [db.conversation_hist, db.myBotV2, db.myUbot, db.anayaAI, db.anayav2]
 
 # history = list(conversation.find().sort("timestamp", -1))
 
