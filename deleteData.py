@@ -22,8 +22,6 @@ bots = [db.conversation_hist, db.myBotV2, db.myUbot, db.anayaAI, db.anayav2]
 
 # history = list(conversation.find().sort("timestamp", -1))
 
-# print(len(history))
-
 # date = history[0].get('timestamp')
 
 
