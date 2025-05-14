@@ -40,7 +40,7 @@ def save_message_to_mongo(role, content, timestamp, dialogID):
         print("Error saving message to MongoDB:", e)
 
 
-def anayaResponse(convo, dialogID, timestamp):
+def anayaResponse(convo, dialogID):
     bot = """"""
     # timestamp = datetime.datetime.now(datetime.UTC)
     response = ollama.chat(
@@ -55,23 +55,25 @@ def anayaResponse(convo, dialogID, timestamp):
         bot += chunk['message']['content']
     print("\n")
     convoHistory.append({'role': 'assistant', 'content': bot})
-    save_message_to_mongo(role='assistant', content=bot, timestamp=timestamp, dialogID=dialogID)
+    save_message_to_mongo(role='assistant', content=bot, timestamp=datetime.datetime.now(datetime.UTC),
+                          dialogID=dialogID)
     # return bot
 
 
 if convoHistory[-1].get('role') == "assistant":
-    print(f"Anaya:  {convoHistory[-1].get('timestamp')}\n{convoHistory[-1].get('content')}\n")
+    print(f"Anaya - {convoHistory[-1].get('timestamp')}\n{convoHistory[-1].get('content')}\n")
 
 elif convoHistory[-1].get('role') == "user":
     anayaResponse(convo=convoHistory, timestamp=datetime.datetime.now(datetime.UTC), dialogID=dialogID)
 
 while True:
-    timestamp = datetime.datetime.now(datetime.UTC)
-    quest = input("Arpit: ")
-    convoHistory.append({'role': 'user', 'content': quest, 'dialogID': dialogID})
-    save_message_to_mongo(role='user', content=quest, timestamp=timestamp, dialogID=dialogID)
 
-    anayaResponse(convo=convoHistory, dialogID=dialogID, timestamp=timestamp)
+    quest = input("Arpit: ")
+    # timestamp = datetime.datetime.now(datetime.UTC)
+    convoHistory.append({'role': 'user', 'content': quest, 'dialogID': dialogID})
+    save_message_to_mongo(role='user', content=quest, timestamp=datetime.datetime.now(datetime.UTC), dialogID=dialogID)
+
+    anayaResponse(convo=convoHistory, dialogID=dialogID)
 
     if quest.lower() == 'exit' or quest.lower() == 'bye' or quest.lower() == 'bye anaya' or quest.lower() == 'see you soon':
         break
