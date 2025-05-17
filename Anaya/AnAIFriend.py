@@ -64,7 +64,7 @@ if convoHistory[-1].get('role') == "assistant":
     print(f"Anaya - {convoHistory[-1].get('timestamp')}\n{convoHistory[-1].get('content')}\n")
 
 elif convoHistory[-1].get('role') == "user":
-    anayaResponse(convo=convoHistory, timestamp=datetime.datetime.now(datetime.UTC), dialogID=dialogID)
+    anayaResponse(convo=convoHistory, dialogID=dialogID)
 
 while True:
 
