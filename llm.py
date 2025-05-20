@@ -56,7 +56,12 @@ def cosmosResponse(convo, dialogID):
     save_message_to_mongo(role='assistant', content=bot, dialogID=dialogID)
     # return bot
 
-if convoHistory[-1].get('role') == "assistant":
+print(len(convoHistory))
+
+if len(convoHistory) == 0:
+    pass
+
+elif convoHistory[-1].get('role') == "assistant":
     print(f"Cosmos: {convoHistory[-1].get('content')}\n")
 
 elif convoHistory[-1].get('role') == "user":
