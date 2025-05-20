@@ -70,16 +70,27 @@ def usingDialogID(conversation):
     })
     return result.deleted_count
 
+def load_conversation_history(bot):
+    try:
+        history = list(bot.find().sort("timestamp", 1))
+        return [{"role": h["role"], "content": h["content"]} for h in history]
+    except Exception as e:
+        print("Error loading conversation history:", e)
+        return []
+
 
 print("Bot names: ")
 for i in range(0, len(bots)):
-    print(f'{i + 1}. {bots[i]}')
+    print(f'{i + 1}. {bots[i].name}')
 
 bot = int(input("\nselect a bot first: "))
 bot = bots[bot - 1]
+print(f"Total documents in {bot.name}: {len(load_conversation_history(bot))}")
 print(
     "\nMenu: \n1. Delete all Documents\n2. Delete using timestamp \n3. Delete using exact Date \n4. Delete using Dialog ID ")
 menu = int(input('Select operation to perform: '))
+
+
 
 match menu:
     case 1:
