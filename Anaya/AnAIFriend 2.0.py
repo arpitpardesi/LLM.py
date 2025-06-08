@@ -6,7 +6,7 @@ import cred
 import certifi
 
 # Initialize MongoDB connection
-MONGO_URI = f"mongodb+srv://{cred.db_username}:{cred.db_password}@cosmos.f2pie.mongodb.net/?retryWrites=true&w=majority&appName=Cosmos"
+MONGO_URI = f"mongodb+srv://{cred.db_username}:{cred.db_password}@cosmos.f2pie.mongodb.net/?retryWrites=true&w=majority&appName={cred.app_name}"  # Replace with your MongoDB connection URI in cred file
 client = MongoClient(MONGO_URI, tlsCAFile=certifi.where())
 db = client.cosmosBot
 conversation_collection = db.anayav2
@@ -17,7 +17,7 @@ session_id = str(uuid.uuid4())
 
 def load_conversation_history():
     try:
-        history = list(conversation_collection.find({"session_id": session_id}).sort("timestamp", 1))
+        history = list(conversation_collection.find().sort("timestamp", 1))
         return [{"role": h["role"], "content": h["content"]} for h in history]
     except Exception as e:
         print("Error loading conversation history:", e)
@@ -47,7 +47,7 @@ def anayaResponse(convo):
     response_text = ""
     try:
         response = ollama.chat(
-            model="artifish/llama3.2-uncensored",
+            model="llama3.2",
             messages=convo,
             stream=True
         )
@@ -64,10 +64,14 @@ def anayaResponse(convo):
     except Exception as e:
         print("Error generating Anaya response:", e)
 
+if convoHistory[-1].get('role') == "assistant":
+    print(f"Anaya - {convoHistory[-1].get('timestamp')}\n{convoHistory[-1].get('content')}\n")
+
+elif convoHistory[-1].get('role') == "user":
+    anayaResponse(convo=convoHistory)
+
 
 def main():
-    if convoHistory:
-        print(f"Anaya: {convoHistory[-1]['content']}\n")
 
     while True:
         user_input = input("Arpit: ")
