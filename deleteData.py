@@ -20,6 +20,7 @@ db = client.cosmosBot
 
 bots = [db.conversation_hist, db.myBotV2, db.myUbot, db.anayaAI, db.anayav2]
 
+
 # history = list(conversation.find().sort("timestamp", -1))
 
 # date = history[0].get('timestamp')
@@ -70,6 +71,17 @@ def usingDialogID(conversation):
     })
     return result.deleted_count
 
+
+def usingSessionID(conversation):
+    ID = input('Enter Session ID: ')
+    result = conversation.delete_many({
+        "session_id": {
+            "$eq": ID
+        }
+    })
+    return result.deleted_count
+
+
 def load_conversation_history(bot):
     try:
         history = list(bot.find().sort("timestamp", 1))
@@ -87,10 +99,8 @@ bot = int(input("\nselect a bot first: "))
 bot = bots[bot - 1]
 print(f"Total documents in {bot.name}: {len(load_conversation_history(bot))}")
 print(
-    "\nMenu: \n1. Delete all Documents\n2. Delete using timestamp \n3. Delete using exact Date \n4. Delete using Dialog ID ")
+    "\nMenu: \n1. Delete all Documents\n2. Delete using timestamp \n3. Delete using exact Date \n4. Delete using Dialog ID \n5. Delete using Session ID")
 menu = int(input('Select operation to perform: '))
-
-
 
 match menu:
     case 1:
@@ -104,3 +114,5 @@ match menu:
     case 4:
         # ID = int(input('Enter Dialog ID: '))
         print(f'Documents deleted: {usingDialogID(conversation=bot)}')
+    case 5:
+        print(f'Documents deleted: {usingSessionID(conversation=bot)}')
