@@ -44,7 +44,6 @@ def anayaResponse(convo, dialogID):
     bot = """"""
     # timestamp = datetime.datetime.now(datetime.UTC)
     response = ollama.chat(
-        # model='llama3.2',
         model=llmModel,
         messages=convo,
         stream=True
