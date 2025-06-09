@@ -17,6 +17,7 @@ db = client.cosmosBot
 conversation_collection = db.myUbot
 convoHistory = []
 
+
 def save_message_to_mongo(role, content, dialogID):
     dialogID += 1
     try:
@@ -32,11 +33,10 @@ def save_message_to_mongo(role, content, dialogID):
         print("Error saving message to MongoDB:", e)
 
 
-
 def load_conversation_history():
     try:
         history = list(conversation_collection.find().sort("timestamp", 1))
-        return [{"role": h["role"], "content": h["content"], "dialogID":dialogID} for h in history]
+        return [{"role": h["role"], "content": h["content"], "dialogID": dialogID} for h in history]
     except Exception as e:
         print("Error loading conversation history:", e)
         return []
@@ -62,15 +62,24 @@ def cosmosResponse(convo):
 convoHistory = load_conversation_history()
 dialogID = len(convoHistory)
 
+if len(convoHistory) == 0:
+    print("Adding personality to the bot\n")
+    with open("personality.txt", "r") as file:
+        personality = file.read()
+        # print(personality)
+
+    convoHistory.append({'role': 'user', 'content': personality})
+    save_message_to_mongo(role='user', content=personality, dialogID=dialogID)
+
 if convoHistory[-1].get('role') == "assistant":
     print(f"Cosmos: {convoHistory[-1].get('content')}\n")
 
 elif convoHistory[-1].get('role') == "user":
     cosmosResponse(convo=convoHistory)
 
-    # res = cosmosResponse(convo=convoHistory)
-    # print(f"Cosmos: {res}", end='')
-    # print('\n')
+# res = cosmosResponse(convo=convoHistory)
+# print(f"Cosmos: {res}", end='')
+# print('\n')
 
 while True:
     quest = input("You: ")
