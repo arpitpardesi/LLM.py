@@ -17,7 +17,7 @@ def load_conversation_history():
 
 session_id = str(uuid.uuid4())
 llmModel = "artifish/llama3.2-uncensored"
-MONGO_URI = f"mongodb+srv://{cred.db_username}:{cred.db_password}@cosmos.f2pie.mongodb.net/?retryWrites=true&w=majority&appName={cred.db_appname}"  # Replace with your MongoDB connection URI
+MONGO_URI = f"mongodb+srv://{cred.db_username}:{cred.db_password}@cosmos.f2pie.mongodb.net/?retryWrites=true&w=majority&appName={cred.db_app_name}"  # Replace with your MongoDB connection URI
 client = MongoClient(MONGO_URI, tlsCAFile=certifi.where())
 db = client.cosmosBot
 conversation_collection = db.anayaAI
