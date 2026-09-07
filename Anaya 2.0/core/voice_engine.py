@@ -138,6 +138,22 @@ class VoiceEngine:
             communicate = edge_tts.Communicate(clean, chosen_voice)
             await communicate.save(str(file_path))
 
+            # Standardize MP3 encoding to 44.1kHz stereo to ensure universal browser & CoreAudio compatibility
+            std_path = file_path.with_suffix(".std.mp3")
+            try:
+                import shutil
+                conv_bin = shutil.which("ffmpeg")
+                if conv_bin:
+                    proc = await asyncio.create_subprocess_exec(
+                        conv_bin, "-y", "-i", str(file_path), "-ar", "44100", "-ac", "2", str(std_path),
+                        stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.DEVNULL
+                    )
+                    await proc.communicate()
+                    if std_path.exists() and std_path.stat().st_size > 0:
+                        std_path.replace(file_path)
+            except Exception as conv_err:
+                print(f"[VoiceEngine Warning] Audio standardization skipped: {conv_err}")
+
             return {
                 "audio_url": audio_url,
                 "text": clean,

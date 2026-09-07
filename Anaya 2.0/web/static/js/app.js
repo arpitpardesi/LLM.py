@@ -703,15 +703,11 @@ class AnayaApp {
 
       audio.addEventListener('error', () => {
         const err = audio.error;
-        // Ignore aborts or normal teardowns (code 1 = MEDIA_ERR_ABORTED)
         if (!err || err.code === 1) return;
 
         console.warn(`Audio element error (code ${err.code}): ${err.message || 'Media load error'}`);
-        // Only trigger fallback if genuinely unplayable or corrupt
-        if (err.code === 3 || err.code === 4) {
-          this.showToast('Audio decoding issue. Using browser voice.', 'warning');
-          this.speakWithWebSpeechFallback(text);
-        }
+        // Transparently play synthesized neural audio via Web Audio API decode engine
+        this.playViaWebAudio(audioUrl, text, player, playBtn, bars, timeSpan);
       });
 
       playBtn.addEventListener('click', async (e) => {
@@ -720,16 +716,22 @@ class AnayaApp {
           if (this.currentAudio && this.currentAudio !== audio) {
             this.currentAudio.pause();
           }
+          if (this.currentSourceNode) {
+            try { this.currentSourceNode.stop(); } catch (stopErr) {}
+          }
           this.currentAudio = audio;
           try {
             await audio.play();
           } catch (playErr) {
+            if (playErr.name === 'AbortError') {
+              return; // Pause/interruption during promise is normal
+            }
             console.warn('Audio playback error:', playErr);
             if (playErr.name === 'NotAllowedError') {
               this.showToast('Tap the play button again to start audio.', 'info');
             } else {
-              this.showToast('Audio playback error. Using browser speech.', 'warning');
-              this.speakWithWebSpeechFallback(text);
+              // Try decoding and playing neural audio via Web Audio API
+              this.playViaWebAudio(audioUrl, text, player, playBtn, bars, timeSpan);
             }
           }
         } else {
@@ -770,8 +772,76 @@ class AnayaApp {
         `;
         triggerBtn.onclick = () => this.speakWithWebSpeechFallback(text);
       }
-      this.showToast('Neural voice synthesis unavailable. Using browser voice fallback.', 'warning');
-      this.speakWithWebSpeechFallback(text);
+    }
+  }
+
+  async playViaWebAudio(audioUrl, fallbackText, player, playBtn, bars, timeSpan) {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) {
+        this.speakWithWebSpeechFallback(fallbackText);
+        return;
+      }
+      if (!this.webAudioCtx) {
+        this.webAudioCtx = new AudioCtx();
+      }
+      if (this.webAudioCtx.state === 'suspended') {
+        await this.webAudioCtx.resume();
+      }
+
+      const res = await fetch(audioUrl);
+      const arrayBuffer = await res.arrayBuffer();
+      const audioBuffer = await this.webAudioCtx.decodeAudioData(arrayBuffer);
+
+      if (this.currentSourceNode) {
+        try { this.currentSourceNode.stop(); } catch (e) {}
+      }
+
+      const source = this.webAudioCtx.createBufferSource();
+      source.buffer = audioBuffer;
+      source.connect(this.webAudioCtx.destination);
+
+      const pauseIconSvg = '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>';
+      const playIconSvg = '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21 6 3"></polygon></svg>';
+
+      player.classList.add('playing');
+      playBtn.innerHTML = pauseIconSvg;
+
+      const duration = audioBuffer.duration;
+      const startTime = this.webAudioCtx.currentTime;
+
+      const animInterval = setInterval(() => {
+        const elapsed = this.webAudioCtx.currentTime - startTime;
+        if (elapsed >= duration) {
+          clearInterval(animInterval);
+          player.classList.remove('playing');
+          playBtn.innerHTML = playIconSvg;
+          bars.forEach((b) => b.classList.remove('active'));
+          return;
+        }
+        const progress = elapsed / duration;
+        const activeIndex = Math.floor(progress * bars.length);
+        bars.forEach((b, idx) => {
+          if (idx <= activeIndex) b.classList.add('active');
+          else b.classList.remove('active');
+        });
+        const m = Math.floor(elapsed / 60);
+        const s = Math.floor(elapsed % 60);
+        timeSpan.textContent = `${m}:${s < 10 ? '0' : ''}${s}`;
+      }, 100);
+
+      source.onended = () => {
+        clearInterval(animInterval);
+        player.classList.remove('playing');
+        playBtn.innerHTML = playIconSvg;
+        bars.forEach((b) => b.classList.remove('active'));
+      };
+
+      source.start(0);
+      this.currentSourceNode = source;
+    } catch (webaudioErr) {
+      console.warn('Web Audio API playback failed:', webaudioErr);
+      this.speakWithWebSpeechFallback(fallbackText);
     }
   }
 
