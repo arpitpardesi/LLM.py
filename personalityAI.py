@@ -1,6 +1,8 @@
 # - [ ] Create an AI personality maker for AI bots that uses user inputs and suggestions from the AI. Users can also add new personality traits. The personality traits can be saved in a file that the bot can access and use.
 
 import ollama
+
+llmModel = "artifish/llama3.2-uncensored"
 personality_traits = {}
 
 
@@ -13,7 +15,8 @@ def add_personality_trait():
         f"Does the trait '{trait}' with description '{description}' look good? (yes/no): ").strip().lower()
     if confirm != 'yes':
         print("Trait not added. Trying again.")
-        askOllama(f"Suggest a personality trait for {trait} with description: {description}")
+        description = askOllama(f"Suggest a personality for {trait} with description: {description}")
+        print(description)
     else:
         print("Trait confirmed. Proceeding to add or update the trait.")
         personality_traits[trait] = description
@@ -33,7 +36,6 @@ def add_personality_trait():
     # Add or update the trait in the dictionary
     if not description.strip():
         print("Description cannot be empty. Please try again.")
-        continue
 
     personality_traits[trait] = description
     print(f"Trait '{trait}' added successfully.")
@@ -70,7 +72,7 @@ def delete_personality_trait(trait):
 
 
 def load_personality_trait(personality_traits):
-    # displays the personality traits from the ditionary
+    # displays the personality traits from the dictionary
     if not personality_traits:
         print("No personality traits loaded.")
         return
@@ -87,10 +89,10 @@ def save_personality_to_file(traits):
     print("Personality traits saved to personality.txt")
 
 
-def askOllama(prompt):
+def askOllama(prompt, role="user"):
     response = ollama.chat(
-        model="llama3.2",
-        messages=[{"role": "user", "content": prompt}],
+        model=llmModel,
+        messages=[{"role": role, "content": prompt}],
         stream=True
     )
     response_text = ""
@@ -101,12 +103,6 @@ def askOllama(prompt):
     print("\n")
     return response_text
 
-
-# initialize ollama with context
-ollama.init(model="llama3.2",
-            context="You are an AI personality maker that helps users create and manage personality traits for AI bots. You can suggest traits based on user input and save them for future use.")
-
-# Dict to hold personality  traits  where keys are traits and values are descriptions
 
 print("Menu")
 print("1. Add Personality Trait")
@@ -132,6 +128,8 @@ while True:
         save_personality_to_file(personality_traits)
 
     elif choice == '5':
+        askOllama(
+            prompt="You are an AI personality maker that helps users create and manage personality traits for AI bots. You can suggest traits based on user input and save them for future use.")
         prompt = input("Enter a prompt for Ollama to suggest personality traits: ")
         askOllama(prompt)
 
