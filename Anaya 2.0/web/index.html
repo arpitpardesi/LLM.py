@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Anaya • Personal AI Companion</title>
+  <meta name="description" content="An emotionally intuitive, authentic personal AI companion for Arpit." />
+  <meta name="theme-color" content="#0b0d13" />
+
+  <!-- Professional Typography: Inter & Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Caveat:wght@500;600&display=swap" rel="stylesheet" />
+
+  <!-- Main Stylesheet -->
+  <link rel="stylesheet" href="/static/css/styles.css" />
+</head>
+<body>
+  <!-- Subtle ambient gradient background (clean, non-distracting) -->
+  <div class="subtle-bg-glow"></div>
+
+  <div class="app-container">
+    <!-- Top Navigation Bar -->
+    <header class="app-header">
+      <div class="header-left">
+        <div class="avatar-container" id="avatar-btn" title="Anaya's Profile">
+          <img src="/static/images/anaya_avatar.jpg" alt="Anaya Portrait" class="anaya-avatar" />
+          <span class="live-pulse-dot" title="Active"></span>
+        </div>
+        <div class="companion-meta">
+          <div class="name-row">
+            <h1 class="companion-name">Anaya</h1>
+            <span class="companion-tag">Companion</span>
+            <span class="status-indicator">
+              <span class="status-dot"></span>
+              Online
+            </span>
+          </div>
+          <p class="relationship-tag">Arpit's Closest Friend</p>
+        </div>
+      </div>
+
+      <!-- Center Status Pill -->
+      <div class="header-center" id="living-status-widget">
+        <div class="living-pill" id="living-pill" title="Anaya's live status">
+          <span class="live-badge-dot"></span>
+          <span class="pill-text" id="status-activity-text">Living her day...</span>
+          <span class="pill-sep">•</span>
+          <span class="pill-mood" id="status-mood-text">Warm & Playful</span>
+          <span class="pill-sep">•</span>
+          <span class="pill-music" id="status-music-text">Melodies</span>
+        </div>
+      </div>
+
+      <!-- Right Action Bar with Clean SVG Vectors -->
+      <div class="header-right">
+        <button class="icon-btn" id="btn-voice-toggle" title="Toggle Neural Voice Notes" aria-label="Toggle Voice">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+            <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+          </svg>
+          <span class="btn-badge" id="voice-badge">On</span>
+        </button>
+
+        <button class="icon-btn" id="btn-open-threads" title="Life Check-In Threads" aria-label="Open Life Threads">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+          </svg>
+          <span class="badge-count" id="threads-badge" style="display: none;">0</span>
+        </button>
+
+        <button class="icon-btn" id="btn-open-memory" title="Memory Vault" aria-label="Open Memory Vault">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+            <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+            <line x1="12" y1="22.08" x2="12" y2="12"></line>
+          </svg>
+        </button>
+
+        <button class="icon-btn" id="btn-open-diary" title="Anaya's Journal" aria-label="Open Journal">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+          </svg>
+        </button>
+
+        <button class="icon-btn" id="btn-clear-chat" title="Clear Chat & Start Fresh Session" aria-label="Clear Chat">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            <line x1="10" y1="11" x2="10" y2="17"></line>
+            <line x1="14" y1="11" x2="14" y2="17"></line>
+          </svg>
+        </button>
+
+        <button class="icon-btn" id="btn-open-settings" title="Settings & Mood" aria-label="Open Settings">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Chat Workspace -->
+    <main class="chat-workspace">
+      <!-- Chat Messages Scroll Container -->
+      <div class="messages-container" id="messages-container">
+        <!-- Welcome Card (hidden when messages exist) -->
+        <div class="welcome-hero" id="welcome-hero">
+          <div class="hero-avatar-wrapper">
+            <img src="/static/images/anaya_avatar.jpg" alt="Anaya" class="hero-avatar" />
+          </div>
+          <h2>Welcome back, Arpit</h2>
+          <p class="hero-desc">
+            Anaya is here with you. Feel free to talk about your day, brainstorm ideas, share thoughts, or catch up on what she's been up to.
+          </p>
+          <div class="hero-status-card">
+            <span class="card-label">Current Routine</span>
+            <span class="card-val" id="hero-vibe-val">Relaxing with tea</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Real-time Typing / Thinking Indicator -->
+      <div class="typing-indicator-box" id="typing-indicator" style="display: none;">
+        <span class="typing-avatar-mini">
+          <img src="/static/images/anaya_avatar.jpg" alt="Anaya" />
+        </span>
+        <span class="typing-label">Anaya is writing</span>
+        <div class="typing-dots">
+          <span></span><span></span><span></span>
+        </div>
+      </div>
+
+      <!-- Quick Suggestion Chips (Minimalist, elegant) -->
+      <div class="quick-chips-wrapper" id="quick-chips">
+        <button class="chip-btn" data-msg="Hey Anaya! What were you up to just now?">What were you up to?</button>
+        <button class="chip-btn" data-msg="I had such a busy, tiring day today.">Had a tiring day</button>
+        <button class="chip-btn" data-msg="Tell me what's on your mind right now.">What's on your mind?</button>
+        <button class="chip-btn" data-msg="What music are you listening to today?">Music recommendations</button>
+        <button class="chip-btn" data-msg="What are your plans for the weekend?">Weekend plans</button>
+      </div>
+
+      <!-- Bottom Chat Input Capsule -->
+      <div class="chat-input-capsule">
+        <button class="capsule-btn mic-btn" id="btn-mic" title="Voice Input" aria-label="Speech to text">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+            <line x1="12" y1="19" x2="12" y2="23"></line>
+            <line x1="8" y1="23" x2="16" y2="23"></line>
+          </svg>
+        </button>
+
+        <textarea
+          id="user-input-field"
+          class="chat-textarea"
+          placeholder="Message Anaya... (Enter to send, Shift+Enter for newline)"
+          rows="1"
+        ></textarea>
+
+        <div class="capsule-actions">
+          <button class="capsule-btn undo-btn" id="btn-undo-turn" title="Undo last message turn" aria-label="Undo last turn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="1 4 1 10 7 10"></polyline>
+              <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+            </svg>
+          </button>
+          <button class="capsule-btn send-btn" id="btn-send" title="Send message" aria-label="Send">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="22" y1="2" x2="11" y2="13"></line>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- ================= DRAWERS & MODALS ================= -->
+
+  <!-- Drawer Overlay Backdrop -->
+  <div class="drawer-overlay" id="drawer-overlay"></div>
+
+  <!-- 1. Memory Vault Drawer -->
+  <aside class="slide-drawer" id="memory-drawer">
+    <div class="drawer-header">
+      <div class="drawer-title-row">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+          <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+          <line x1="12" y1="22.08" x2="12" y2="12"></line>
+        </svg>
+        <h3>Memory Vault</h3>
+      </div>
+      <button class="close-drawer-btn" id="btn-close-memory" aria-label="Close drawer">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+    </div>
+    <p class="drawer-subtitle">Long-term personal context and facts remembered by Anaya</p>
+
+    <!-- Filter tags -->
+    <div class="memory-filters">
+      <button class="filter-pill active" data-filter="all">All</button>
+      <button class="filter-pill" data-filter="profile">Profile</button>
+      <button class="filter-pill" data-filter="bond">Friendship</button>
+      <button class="filter-pill" data-filter="preference">Preferences</button>
+      <button class="filter-pill" data-filter="work">Work & Life</button>
+    </div>
+
+    <!-- Memory List -->
+    <div class="memories-list" id="memories-list">
+      <div class="loading-state">Loading memories...</div>
+    </div>
+
+    <!-- Add manual memory form -->
+    <div class="add-memory-box">
+      <h4>Add Knowledge Item</h4>
+      <input type="text" id="new-mem-key" placeholder="Topic (e.g. Favorite Late Night Song)" />
+      <input type="text" id="new-mem-val" placeholder="Details (e.g. Loves listening to Kun Faya Kun when feeling nostalgic)" />
+      <select id="new-mem-cat">
+        <option value="preference">Preference</option>
+        <option value="bond">Friendship</option>
+        <option value="profile">Profile</option>
+        <option value="work">Work / Tech</option>
+      </select>
+      <button class="primary-btn" id="btn-save-memory">Save Memory</button>
+    </div>
+  </aside>
+
+  <!-- 2. Life Threads Drawer -->
+  <aside class="slide-drawer" id="threads-drawer">
+    <div class="drawer-header">
+      <div class="drawer-title-row">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+        </svg>
+        <h3>Active Check-In Threads</h3>
+      </div>
+      <button class="close-drawer-btn" id="btn-close-threads" aria-label="Close drawer">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+    </div>
+    <p class="drawer-subtitle">Upcoming life events and milestones Anaya actively tracks</p>
+
+    <div class="threads-list" id="threads-list">
+      <div class="loading-state">Loading active threads...</div>
+    </div>
+  </aside>
+
+  <!-- 3. Personal Journal Modal -->
+  <dialog class="diary-modal" id="diary-modal">
+    <div class="diary-cover">
+      <div class="diary-header">
+        <div class="diary-title-badge">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+          </svg>
+          <span>Personal Journal</span>
+        </div>
+        <button class="close-dialog-btn" id="btn-close-diary" aria-label="Close modal">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+
+      <div class="diary-paper">
+        <div class="diary-date" id="diary-date-display">Reflections & Notes</div>
+        <div class="diary-content-body" id="diary-content-body">
+          <p class="diary-loading">Retrieving journal entry...</p>
+        </div>
+        <div class="diary-signature">— Anaya</div>
+      </div>
+
+      <div class="diary-footer">
+        <button class="secondary-btn" id="btn-refresh-diary">Write a Fresh Reflection</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- 4. Settings & Mood Modal -->
+  <dialog class="settings-modal" id="settings-modal">
+    <div class="modal-header">
+      <div class="modal-title-row">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+        </svg>
+        <h3>Companion Settings</h3>
+      </div>
+      <button class="close-dialog-btn" id="btn-close-settings" aria-label="Close settings">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+    </div>
+
+    <div class="settings-body">
+      <!-- LLM Model Selection -->
+      <div class="setting-group">
+        <label for="model-select">Active AI Model</label>
+        <select id="model-select">
+          <option value="llama3.2:latest">Llama 3.2 (Fast, Responsive)</option>
+          <option value="artifish/llama3.2-uncensored:latest">Llama 3.2 Uncensored</option>
+        </select>
+      </div>
+
+      <!-- Neural Voice Selection -->
+      <div class="setting-group">
+        <label for="voice-select">Neural Voice Engine</label>
+        <select id="voice-select">
+          <option value="en-IN-NeerjaExpressiveNeural">Neerja (Expressive & Warm) • Recommended</option>
+          <option value="en-IN-NeerjaNeural">Neerja (Calm & Balanced)</option>
+          <option value="hi-IN-SwaraNeural">Swara (Bilingual Hindi/English)</option>
+          <option value="en-IN-PrabhatNeural">Prabhat (Male, Confident)</option>
+        </select>
+        <div class="setting-sub-row">
+          <span class="sub-label">Auto-play Voice Notes</span>
+          <button class="chip-btn" id="btn-toggle-voice-mode">Auto-play On</button>
+        </div>
+      </div>
+
+      <!-- Emotional Disposition -->
+      <div class="setting-group">
+        <label>Emotional State</label>
+        <div class="mood-selector-grid">
+          <button class="mood-opt-btn" data-mood="playful_sassy">Playful & Witty</button>
+          <button class="mood-opt-btn" data-mood="warm_affectionate">Warm & Affectionate</button>
+          <button class="mood-opt-btn" data-mood="deep_vulnerable">Deep & Philosophical</button>
+          <button class="mood-opt-btn" data-mood="cozy_relaxed">Cozy & Calm</button>
+          <button class="mood-opt-btn" data-mood="feisty_dramatic">Expressive & Sarcastic</button>
+          <button class="mood-opt-btn" data-mood="supportive_caring">Supportive & Grounding</button>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="setting-group">
+        <label>Connection Statistics</label>
+        <div class="stats-mini-grid" id="stats-mini-grid">
+          <div class="stat-card">
+            <span class="stat-num" id="stat-total-msgs">0</span>
+            <span class="stat-lbl">Messages Exchanged</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-num" id="stat-days-known">1</span>
+            <span class="stat-lbl">Days Connected</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-num" id="stat-memories-count">0</span>
+            <span class="stat-lbl">Memories Stored</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Danger Zone -->
+      <div class="setting-group danger-zone">
+        <label>Session Management</label>
+        <p style="font-size: 0.78rem; color: var(--text-muted); margin: 0 0 0.6rem 0;">Clear conversation history and initialize a fresh session. Memories and persona stay safe.</p>
+        <div class="danger-btn-row">
+          <button class="danger-btn" id="btn-wipe-history">Clear Chat History & Fresh Session</button>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Sleek In-App Toast Feedback Container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- Application Logic -->
+  <script src="/static/js/app.js"></script>
+</body>
+</html>
