@@ -119,6 +119,7 @@ class LLMClient:
                 return (response.message.content or "").strip()
             return ""
         except Exception as e:
+            print(f"[Error in chat_sync]: {e}")
             return ""
 
 

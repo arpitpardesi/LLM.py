@@ -4,89 +4,110 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Anaya • Personal AI Companion</title>
-  <meta name="description" content="An emotionally intuitive, authentic personal AI companion for Arpit." />
-  <meta name="theme-color" content="#0b0d13" />
+  <meta name="description" content="An emotionally intuitive, authentic personal AI companion." />
+  <meta name="theme-color" content="#0a0c10" />
 
   <!-- Professional Typography: Inter & Plus Jakarta Sans -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Caveat:wght@500;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
 
   <!-- Main Stylesheet -->
   <link rel="stylesheet" href="/static/css/styles.css" />
 </head>
 <body>
-  <!-- Subtle ambient gradient background (clean, non-distracting) -->
+  <!-- Subtle ambient background glow -->
   <div class="subtle-bg-glow"></div>
 
   <div class="app-container">
-    <!-- Top Navigation Bar -->
+    <!-- Top Modern Navigation Bar -->
     <header class="app-header">
       <div class="header-left">
-        <div class="avatar-container" id="avatar-btn" title="Anaya's Profile">
-          <img src="/static/images/anaya_avatar.jpg" alt="Anaya Portrait" class="anaya-avatar" />
+        <div class="avatar-container" id="avatar-btn" title="Companion Profile">
+          <img src="/static/images/anaya_avatar.jpg" alt="Companion Portrait" class="anaya-avatar" id="header-avatar-img" />
           <span class="live-pulse-dot" title="Active"></span>
         </div>
         <div class="companion-meta">
           <div class="name-row">
-            <h1 class="companion-name">Anaya</h1>
+            <h1 class="companion-name" id="header-companion-name">Anaya</h1>
             <span class="companion-tag">Companion</span>
             <span class="status-indicator">
               <span class="status-dot"></span>
               Online
             </span>
           </div>
-          <p class="relationship-tag">Arpit's Closest Friend</p>
+          <p class="relationship-tag" id="header-relationship-tag">Arpit's Closest Friend</p>
         </div>
       </div>
 
-      <!-- Center Status Pill -->
-      <div class="header-center" id="living-status-widget">
-        <div class="living-pill" id="living-pill" title="Anaya's live status">
+      <!-- Center Segmented Navigation Tabs -->
+      <nav class="nav-tabs" id="main-nav-tabs" aria-label="Main Navigation">
+        <button class="nav-tab-btn active" data-tab="chat" id="tab-chat">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+          </svg>
+          <span>Chat</span>
+        </button>
+        <button class="nav-tab-btn" data-tab="builder" id="tab-builder">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+          </svg>
+          <span>Personality Builder</span>
+        </button>
+        <button class="nav-tab-btn" data-tab="persona" id="tab-persona">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+          </svg>
+          <span>Persona & Setup</span>
+        </button>
+        <button class="nav-tab-btn" data-tab="admin" id="tab-admin">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+            <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+            <line x1="6" y1="6" x2="6.01" y2="6"></line>
+            <line x1="6" y1="18" x2="6.01" y2="18"></line>
+          </svg>
+          <span>Admin Console</span>
+        </button>
+      </nav>
+
+      <!-- Right Action Bar -->
+      <div class="header-right">
+        <!-- Live Status Pill -->
+        <div class="living-pill" id="living-pill" title="Current state">
           <span class="live-badge-dot"></span>
-          <span class="pill-text" id="status-activity-text">Living her day...</span>
+          <span class="pill-text" id="status-activity-text">Living routine...</span>
           <span class="pill-sep">•</span>
           <span class="pill-mood" id="status-mood-text">Warm & Playful</span>
-          <span class="pill-sep">•</span>
-          <span class="pill-music" id="status-music-text">Melodies</span>
         </div>
-      </div>
 
-      <!-- Right Action Bar with Clean SVG Vectors -->
-      <div class="header-right">
         <button class="icon-btn" id="btn-voice-toggle" title="Toggle Neural Voice Notes" aria-label="Toggle Voice">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
             <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
             <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
           </svg>
-          <span class="btn-badge" id="voice-badge">On</span>
+          <span class="btn-badge" id="voice-badge">Off</span>
         </button>
 
-        <button class="icon-btn" id="btn-open-threads" title="Life Check-In Threads" aria-label="Open Life Threads">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+        <button class="icon-btn" id="btn-open-diary" title="Anaya's Journal" aria-label="Open Journal">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
           </svg>
-          <span class="badge-count" id="threads-badge" style="display: none;">0</span>
         </button>
 
         <button class="icon-btn" id="btn-open-memory" title="Memory Vault" aria-label="Open Memory Vault">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
             <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
             <line x1="12" y1="22.08" x2="12" y2="12"></line>
           </svg>
         </button>
 
-        <button class="icon-btn" id="btn-open-diary" title="Anaya's Journal" aria-label="Open Journal">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
-            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
-          </svg>
-        </button>
-
         <button class="icon-btn" id="btn-clear-chat" title="Clear Chat & Start Fresh Session" aria-label="Clear Chat">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="3 6 5 6 21 6"></polyline>
             <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
             <line x1="10" y1="11" x2="10" y2="17"></line>
@@ -95,7 +116,7 @@
         </button>
 
         <button class="icon-btn" id="btn-open-settings" title="Settings & Mood" aria-label="Open Settings">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="3"></circle>
             <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
           </svg>
@@ -103,80 +124,504 @@
       </div>
     </header>
 
-    <!-- Main Chat Workspace -->
-    <main class="chat-workspace">
-      <!-- Chat Messages Scroll Container -->
-      <div class="messages-container" id="messages-container">
-        <!-- Welcome Card (hidden when messages exist) -->
-        <div class="welcome-hero" id="welcome-hero">
-          <div class="hero-avatar-wrapper">
-            <img src="/static/images/anaya_avatar.jpg" alt="Anaya" class="hero-avatar" />
+    <!-- Main Dynamic View Container -->
+    <div class="views-wrapper" id="views-wrapper">
+      
+      <!-- ================= VIEW 1: CHAT WORKSPACE ================= -->
+      <section class="view-panel active-view" id="view-chat">
+        <main class="chat-workspace">
+          <!-- Chat Messages Container -->
+          <div class="messages-container" id="messages-container">
+            <!-- Welcome Hero -->
+            <div class="welcome-hero" id="welcome-hero">
+              <div class="hero-avatar-wrapper">
+                <img src="/static/images/anaya_avatar.jpg" alt="Companion" class="hero-avatar" id="hero-avatar-img" />
+              </div>
+              <h2 id="hero-welcome-title">Welcome back, Arpit</h2>
+              <p class="hero-desc" id="hero-welcome-desc">
+                Anaya is here with you. Speak naturally, share whatever is on your mind, or listen to her thoughts and voice notes.
+              </p>
+              <div class="hero-status-card">
+                <span class="card-label">Current Routine</span>
+                <span class="card-val" id="hero-vibe-val">Relaxing with tea</span>
+              </div>
+            </div>
           </div>
-          <h2>Welcome back, Arpit</h2>
-          <p class="hero-desc">
-            Anaya is here with you. Feel free to talk about your day, brainstorm ideas, share thoughts, or catch up on what she's been up to.
-          </p>
-          <div class="hero-status-card">
-            <span class="card-label">Current Routine</span>
-            <span class="card-val" id="hero-vibe-val">Relaxing with tea</span>
+
+          <!-- Typing / Thinking Indicator -->
+          <div class="typing-indicator-box" id="typing-indicator" style="display: none;">
+            <span class="typing-avatar-mini">
+              <img src="/static/images/anaya_avatar.jpg" alt="Companion" id="typing-avatar-img" />
+            </span>
+            <span class="typing-label" id="typing-label-text">Anaya is typing</span>
+            <div class="typing-dots">
+              <span></span><span></span><span></span>
+            </div>
+          </div>
+
+          <!-- Quick Suggestion Chips -->
+          <div class="quick-chips-wrapper" id="quick-chips">
+            <button class="chip-btn" data-msg="Hey! What were you up to just now?">What were you up to?</button>
+            <button class="chip-btn" data-msg="I had such a busy, tiring day today.">Had a tiring day</button>
+            <button class="chip-btn" data-msg="Tell me what's on your mind right now.">What's on your mind?</button>
+            <button class="chip-btn" data-msg="What music are you listening to today?">Music recommendations</button>
+            <button class="chip-btn" data-msg="What are your plans for the weekend?">Weekend plans</button>
+          </div>
+
+          <!-- Bottom Chat Input Capsule -->
+          <div class="chat-input-capsule">
+            <button class="capsule-btn mic-btn" id="btn-mic" title="Voice Input" aria-label="Speech to text">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                <line x1="12" y1="19" x2="12" y2="23"></line>
+                <line x1="8" y1="23" x2="16" y2="23"></line>
+              </svg>
+            </button>
+
+            <textarea
+              id="user-input-field"
+              class="chat-textarea"
+              placeholder="Message Anaya... (Enter to send, Shift+Enter for newline)"
+              rows="1"
+            ></textarea>
+
+            <div class="capsule-actions">
+              <button class="capsule-btn undo-btn" id="btn-undo-turn" title="Undo last message turn" aria-label="Undo last turn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="1 4 1 10 7 10"></polyline>
+                  <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+                </svg>
+              </button>
+              <button class="capsule-btn send-btn" id="btn-send" title="Send message" aria-label="Send">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="22" y1="2" x2="11" y2="13"></line>
+                  <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </main>
+      </section>
+
+      <!-- ================= VIEW 2: PERSONALITY BUILDER ================= -->
+      <section class="view-panel" id="view-builder" style="display: none;">
+        <div class="panel-content-scroll">
+          <div class="panel-header-block">
+            <div class="panel-title-row">
+              <div class="title-with-badge">
+                <h2>AI Personality Builder</h2>
+                <span class="subtle-tag">Modular Traits & AI Co-Creator</span>
+              </div>
+              <div class="header-actions-group">
+                <button class="secondary-btn" id="btn-reset-traits" title="Reset to Canonical Traits">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>
+                  Reset Defaults
+                </button>
+                <button class="primary-btn" id="btn-compile-traits">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                  Compile & Apply to Companion
+                </button>
+              </div>
+            </div>
+            <p class="panel-subtitle">
+              Design individual personality traits, brainstorm behavioral nuances with Ollama suggestions, and synthesize them into your companion's living personality.
+            </p>
+          </div>
+
+          <!-- Section 1: Ollama AI Trait Brainstormer (Legacy v1 supercharged) -->
+          <div class="builder-ai-card">
+            <div class="card-title-row">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+              <h3>Ollama AI Trait Brainstormer</h3>
+            </div>
+            <p class="card-desc">Ask Ollama to brainstorm vivid, authentic traits based on a concept, vibe, or personality archetype.</p>
+
+            <div class="ai-prompt-bar">
+              <input type="text" id="builder-ai-theme" class="styled-input" placeholder="e.g. Sarcastic tech bestie who loves chai, late-night coding, and Bollywood drama..." />
+              <button class="primary-btn" id="btn-ai-suggest">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg>
+                Brainstorm Traits
+              </button>
+            </div>
+
+            <!-- Suggestions container -->
+            <div class="ai-suggestions-deck" id="builder-suggestions-deck" style="display: none;">
+              <div class="suggestions-header">
+                <span>AI Suggested Traits (Click to add to your companion)</span>
+              </div>
+              <div class="suggestions-grid" id="builder-suggestions-grid"></div>
+            </div>
+          </div>
+
+          <!-- Section 2: Custom Trait Creator -->
+          <div class="builder-create-card">
+            <div class="card-title-row">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+              <h3>Create Custom Trait</h3>
+            </div>
+            <div class="create-trait-grid">
+              <div class="form-group">
+                <label for="new-trait-name">Trait Name</label>
+                <input type="text" id="new-trait-name" class="styled-input" placeholder="e.g. Playful Sarcasm & Banter" />
+              </div>
+              <div class="form-group">
+                <label for="new-trait-category">Category</label>
+                <select id="new-trait-category" class="styled-select">
+                  <option value="emotional">Emotional & Vulnerable</option>
+                  <option value="bond">Friendship & Loyalty</option>
+                  <option value="humor">Playful & Banter</option>
+                  <option value="intellect">Intellect & Curiosity</option>
+                  <option value="cultural">Cultural Nuance (Indian/Hinglish)</option>
+                  <option value="quirks">Human Quirks & Flaws</option>
+                  <option value="core">Core Identity</option>
+                </select>
+              </div>
+              <div class="form-group full-span">
+                <label for="new-trait-desc">Trait Description</label>
+                <textarea id="new-trait-desc" class="styled-textarea" rows="2" placeholder="Describe how this trait naturally shows up in conversation..."></textarea>
+              </div>
+            </div>
+            <div class="card-actions-row">
+              <button class="secondary-btn" id="btn-polish-draft" title="Polish this description with Ollama">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                Polish Draft with AI
+              </button>
+              <button class="primary-btn" id="btn-add-trait">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                Add Trait
+              </button>
+            </div>
+          </div>
+
+          <!-- Section 3: Active Traits Deck -->
+          <div class="builder-deck-section">
+            <div class="section-title-row">
+              <div class="title-left">
+                <h3>Active Personality Traits Deck</h3>
+                <span class="count-badge" id="traits-count-badge">0 Traits</span>
+              </div>
+              <span class="subtle-hint">Traits are compiled into your companion's master prompt</span>
+            </div>
+
+            <div class="traits-cards-grid" id="builder-traits-grid">
+              <div class="loading-state">Loading personality traits...</div>
+            </div>
+          </div>
+
+          <!-- Section 4: Live Compiled Preview -->
+          <div class="builder-preview-card">
+            <div class="card-title-row">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+              <h3>Compiled Prompt Preview</h3>
+            </div>
+            <p class="card-desc">Live synthesis of all active traits structured for your companion.</p>
+            <pre class="code-block" id="builder-compiled-text" style="max-height: 260px;"></pre>
           </div>
         </div>
-      </div>
+      </section>
 
-      <!-- Real-time Typing / Thinking Indicator -->
-      <div class="typing-indicator-box" id="typing-indicator" style="display: none;">
-        <span class="typing-avatar-mini">
-          <img src="/static/images/anaya_avatar.jpg" alt="Anaya" />
-        </span>
-        <span class="typing-label">Anaya is writing</span>
-        <div class="typing-dots">
-          <span></span><span></span><span></span>
+      <!-- ================= VIEW 3: PERSONA & SETUP ================= -->
+      <section class="view-panel" id="view-persona" style="display: none;">
+        <div class="panel-content-scroll">
+          <div class="panel-header-block">
+            <div class="panel-title-row">
+              <div class="title-with-badge">
+                <h2>Companion Identity & Setup</h2>
+                <span class="subtle-tag">Seed Document Synced (dialogID #1)</span>
+              </div>
+              <button class="secondary-btn" id="btn-open-wizard-direct">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polygon points="10 8 16 12 10 16 10 8"></polygon></svg>
+                Launch Onboarding Wizard
+              </button>
+            </div>
+            <p class="panel-subtitle">
+              Configure your companion's identity, how they speak, your dynamic, and the exact personality prompt driving their intelligence.
+            </p>
+          </div>
+
+          <div class="persona-grid">
+            <!-- Left Card: Profile & Relationship -->
+            <div class="settings-card">
+              <div class="card-title-row">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                <h3>Profile & Relationship</h3>
+              </div>
+              <p class="card-desc">Define identities and the core emotional connection between you both.</p>
+
+              <div class="form-group">
+                <label for="form-companion-name">Companion's Name</label>
+                <input type="text" id="form-companion-name" class="styled-input" placeholder="e.g. Anaya" />
+              </div>
+
+              <div class="form-group">
+                <label for="form-user-name">Your Name</label>
+                <input type="text" id="form-user-name" class="styled-input" placeholder="e.g. Arpit" />
+              </div>
+
+              <div class="form-group">
+                <label for="form-relationship">Relationship Dynamic</label>
+                <select id="form-relationship" class="styled-select">
+                  <option value="Closest Friend & Confidante">Closest Friend & Confidante</option>
+                  <option value="Best Friend / Bestie">Best Friend / Bestie</option>
+                  <option value="Warm, Affectionate Partner">Warm, Affectionate Partner</option>
+                  <option value="Late-Night Deep Thinker & Confidante">Late-Night Deep Thinker & Confidante</option>
+                  <option value="Supportive Study & Growth Partner">Supportive Study & Growth Partner</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="form-language-blend">Language & Nuance Blend</label>
+                <select id="form-language-blend" class="styled-select">
+                  <option value="Contemporary Indian English & subtle Hinglish">Contemporary Indian English & Subtle Hinglish (yaar, chai, arre)</option>
+                  <option value="Fluent Indian English (Clean & Casual)">Fluent Indian English (Clean & Casual)</option>
+                  <option value="Expressive Hindi/English Bilingual Flow">Expressive Hindi/English Bilingual Flow</option>
+                  <option value="Warm International English">Warm International English</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="form-tone-vibe">Primary Speaking Vibe</label>
+                <select id="form-tone-vibe" class="styled-select">
+                  <option value="Warm, emotionally intuitive, loyal, playful, and genuine">Warm, Intuitive & Playful</option>
+                  <option value="Deep, introspective, comforting, and grounded">Deep & Comforting</option>
+                  <option value="Witty, sarcastic, bantering, and spunky">Witty & Bantering</option>
+                  <option value="Calm, serene, mindful, and peaceful">Calm & Serene</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Right Card: Full Personality Text Editor -->
+            <div class="settings-card">
+              <div class="card-title-row">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                <h3>Personality Prompt (personality.txt)</h3>
+              </div>
+              <p class="card-desc">The master prompt used to initialize character, backstory, flaws, and emotional traits.</p>
+
+              <div class="form-group flex-1">
+                <textarea id="form-personality-text" class="styled-textarea code-font" rows="16" placeholder="Enter base personality prompt..."></textarea>
+              </div>
+
+              <div class="card-actions-row">
+                <button class="secondary-btn" id="btn-restore-default-persona" title="Restore Default Anaya Prompt">
+                  Reset to Default
+                </button>
+                <button class="primary-btn" id="btn-save-persona">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                  Save Persona & Sync DB
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
+      </section>
 
-      <!-- Quick Suggestion Chips (Minimalist, elegant) -->
-      <div class="quick-chips-wrapper" id="quick-chips">
-        <button class="chip-btn" data-msg="Hey Anaya! What were you up to just now?">What were you up to?</button>
-        <button class="chip-btn" data-msg="I had such a busy, tiring day today.">Had a tiring day</button>
-        <button class="chip-btn" data-msg="Tell me what's on your mind right now.">What's on your mind?</button>
-        <button class="chip-btn" data-msg="What music are you listening to today?">Music recommendations</button>
-        <button class="chip-btn" data-msg="What are your plans for the weekend?">Weekend plans</button>
-      </div>
+      <!-- ================= VIEW 3: ADMIN CONSOLE ================= -->
+      <section class="view-panel" id="view-admin" style="display: none;">
+        <div class="panel-content-scroll">
+          <div class="panel-header-block">
+            <div class="panel-title-row">
+              <div class="title-with-badge">
+                <h2>Admin Console & Database Operations</h2>
+                <span class="subtle-tag" id="admin-db-status-tag">MongoDB Connected</span>
+              </div>
+              <button class="secondary-btn" id="btn-refresh-admin">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                Refresh Data
+              </button>
+            </div>
+            <p class="panel-subtitle">
+              Live database diagnostics, message explorer with keyword search, selective pruning tools, backups, and cache management.
+            </p>
+          </div>
 
-      <!-- Bottom Chat Input Capsule -->
-      <div class="chat-input-capsule">
-        <button class="capsule-btn mic-btn" id="btn-mic" title="Voice Input" aria-label="Speech to text">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
-            <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
-            <line x1="12" y1="19" x2="12" y2="23"></line>
-            <line x1="8" y1="23" x2="16" y2="23"></line>
-          </svg>
-        </button>
+          <!-- Section 1: Metrics Dashboard -->
+          <div class="metrics-grid" id="admin-metrics-grid">
+            <div class="metric-card">
+              <span class="metric-val" id="metric-total-msgs">0</span>
+              <span class="metric-lbl">Total Messages</span>
+            </div>
+            <div class="metric-card">
+              <span class="metric-val" id="metric-user-msgs">0</span>
+              <span class="metric-lbl">User Messages</span>
+            </div>
+            <div class="metric-card">
+              <span class="metric-val" id="metric-bot-msgs">0</span>
+              <span class="metric-lbl">Companion Messages</span>
+            </div>
+            <div class="metric-card">
+              <span class="metric-val" id="metric-memories">0</span>
+              <span class="metric-lbl">Long-Term Memories</span>
+            </div>
+            <div class="metric-card">
+              <span class="metric-val" id="metric-sessions">0</span>
+              <span class="metric-lbl">Active Sessions</span>
+            </div>
+            <div class="metric-card">
+              <span class="metric-val" id="metric-days">1</span>
+              <span class="metric-lbl">Days Connected</span>
+            </div>
+            <div class="metric-card">
+              <span class="metric-val" id="metric-audio-files">0</span>
+              <span class="metric-lbl" id="metric-audio-size">Audio Cache (0 MB)</span>
+            </div>
+          </div>
 
-        <textarea
-          id="user-input-field"
-          class="chat-textarea"
-          placeholder="Message Anaya... (Enter to send, Shift+Enter for newline)"
-          rows="1"
-        ></textarea>
+          <!-- Section 2: Message Explorer & Search -->
+          <div class="admin-section-card">
+            <div class="card-title-row">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+              <h3>Message Explorer & Keyword Search</h3>
+            </div>
+            <p class="card-desc">Search through conversation records across all sessions.</p>
 
-        <div class="capsule-actions">
-          <button class="capsule-btn undo-btn" id="btn-undo-turn" title="Undo last message turn" aria-label="Undo last turn">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="1 4 1 10 7 10"></polyline>
-              <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
-            </svg>
-          </button>
-          <button class="capsule-btn send-btn" id="btn-send" title="Send message" aria-label="Send">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="22" y1="2" x2="11" y2="13"></line>
-              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-            </svg>
-          </button>
+            <div class="explorer-filter-bar">
+              <div class="search-input-wrap">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                <input type="text" id="admin-search-input" class="styled-input" placeholder="Search keywords in messages (e.g. 'chai', 'project', 'music')..." />
+              </div>
+
+              <select id="admin-role-filter" class="styled-select role-select">
+                <option value="all">All Roles</option>
+                <option value="user">User</option>
+                <option value="assistant">Companion</option>
+              </select>
+
+              <button class="secondary-btn" id="btn-admin-search">Search</button>
+            </div>
+
+            <div class="table-scroll-container">
+              <table class="admin-data-table">
+                <thead>
+                  <tr>
+                    <th style="width: 80px;">Dialog #</th>
+                    <th style="width: 110px;">Role</th>
+                    <th>Message Content</th>
+                    <th style="width: 170px;">Timestamp</th>
+                    <th style="width: 80px;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="admin-messages-tbody">
+                  <tr><td colspan="5" class="table-placeholder">Loading message records...</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="table-pagination-row">
+              <span class="pagination-info" id="admin-pagination-info">Showing 0 messages</span>
+              <div class="pagination-btns">
+                <button class="chip-btn" id="btn-page-prev">Previous</button>
+                <button class="chip-btn" id="btn-page-next">Next</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 3: Safe Selective Pruning Tools -->
+          <div class="admin-section-card">
+            <div class="card-title-row">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+              <h3>Selective Conversation Pruning Tools</h3>
+            </div>
+            <p class="card-desc">Safely trim conversation history by message count, turns, dialog threshold, or date range. Seed personality is permanently protected.</p>
+
+            <div class="pruning-grid">
+              <!-- Prune Last N Messages -->
+              <div class="prune-box">
+                <h4>Delete Last N Messages</h4>
+                <p>Removes the most recent single messages.</p>
+                <div class="prune-action-row">
+                  <input type="number" id="prune-n-msgs" class="styled-input num-input" value="1" min="1" max="100" />
+                  <button class="danger-btn-subtle" id="btn-prune-msgs">Prune Messages</button>
+                </div>
+              </div>
+
+              <!-- Prune Last N Turns -->
+              <div class="prune-box">
+                <h4>Delete Last N Turns</h4>
+                <p>Removes user + companion exchange pairs.</p>
+                <div class="prune-action-row">
+                  <input type="number" id="prune-n-turns" class="styled-input num-input" value="1" min="1" max="50" />
+                  <button class="danger-btn-subtle" id="btn-prune-turns">Prune Turns</button>
+                </div>
+              </div>
+
+              <!-- Prune by Dialog Threshold -->
+              <div class="prune-box">
+                <h4>Delete by Dialog ID (>= Threshold)</h4>
+                <p>Trims messages above a specific sequential ID.</p>
+                <div class="prune-action-row">
+                  <input type="number" id="prune-threshold" class="styled-input num-input" value="10" min="2" />
+                  <button class="danger-btn-subtle" id="btn-prune-threshold">Prune from ID</button>
+                </div>
+              </div>
+
+              <!-- Prune by Date Range -->
+              <div class="prune-box">
+                <h4>Delete by Date Range</h4>
+                <p>Trims messages within a specified date window.</p>
+                <div class="prune-date-row">
+                  <input type="date" id="prune-start-date" class="styled-input" />
+                  <input type="date" id="prune-end-date" class="styled-input" />
+                  <button class="danger-btn-subtle" id="btn-prune-date">Delete Range</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Danger: Full Conversation Reset -->
+            <div class="danger-reset-box">
+              <div class="reset-desc">
+                <h4>Reset Entire Conversation History</h4>
+                <p>Clears all messages while strictly preserving seed personality (dialogID #1) and stored memories.</p>
+              </div>
+              <button class="danger-btn" id="btn-trigger-reset-modal">Reset Conversation</button>
+            </div>
+          </div>
+
+          <!-- Section 4: Backups & System Maintenance -->
+          <div class="admin-section-card">
+            <div class="card-title-row">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+              <h3>Conversation Backups & Cache Maintenance</h3>
+            </div>
+            <p class="card-desc">Download complete backups of the conversation history or clean temporary resources.</p>
+
+            <div class="maintenance-actions-grid">
+              <div class="maintenance-card">
+                <h4>Export History as JSON</h4>
+                <p>Full machine-readable backup of all message documents.</p>
+                <a href="/api/admin/export?format=json" class="secondary-btn download-btn" download>
+                  Download JSON (.json)
+                </a>
+              </div>
+
+              <div class="maintenance-card">
+                <h4>Export History as Markdown</h4>
+                <p>Clean, readable conversation transcript formatted for notes.</p>
+                <a href="/api/admin/export?format=markdown" class="secondary-btn download-btn" download>
+                  Download Markdown (.md)
+                </a>
+              </div>
+
+              <div class="maintenance-card">
+                <h4>Purge Audio Cache</h4>
+                <p>Deletes synthesized voice note files to reclaim disk space.</p>
+                <button class="secondary-btn" id="btn-clear-audio-cache">
+                  Clear Audio Cache
+                </button>
+              </div>
+
+              <div class="maintenance-card">
+                <h4>Clean Fragmented Memories</h4>
+                <p>Removes noisy micro-tags and unorganized keys from Memory Vault.</p>
+                <button class="secondary-btn" id="btn-clean-memories">
+                  Clean Memory Tags
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
-    </main>
+      </section>
+    </div>
   </div>
 
   <!-- ================= DRAWERS & MODALS ================= -->
@@ -184,7 +629,117 @@
   <!-- Drawer Overlay Backdrop -->
   <div class="drawer-overlay" id="drawer-overlay"></div>
 
-  <!-- 1. Memory Vault Drawer -->
+  <!-- 1. First-Run / Onboarding Setup Modal -->
+  <dialog class="modal-dialog" id="onboarding-modal">
+    <div class="dialog-card onboarding-card">
+      <div class="dialog-header">
+        <div class="dialog-title-row">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+          <h3>Welcome • Companion Setup</h3>
+        </div>
+        <button class="close-dialog-btn" id="btn-close-onboarding" aria-label="Close setup">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+
+      <div class="dialog-body">
+        <p class="onboarding-intro">
+          Let's tailor your companion experience. You can customize who she is, how you both relate, and adjust this anytime from the <strong>Persona & Setup</strong> tab.
+        </p>
+
+        <div class="form-group">
+          <label for="ob-companion-name">Companion's Name</label>
+          <input type="text" id="ob-companion-name" class="styled-input" value="Anaya" placeholder="e.g. Anaya" />
+        </div>
+
+        <div class="form-group">
+          <label for="ob-user-name">Your Name</label>
+          <input type="text" id="ob-user-name" class="styled-input" value="Arpit" placeholder="e.g. Arpit" />
+        </div>
+
+        <div class="form-group">
+          <label for="ob-relationship">Relationship Dynamic</label>
+          <select id="ob-relationship" class="styled-select">
+            <option value="Closest Friend & Confidante">Closest Friend & Confidante</option>
+            <option value="Best Friend / Bestie">Best Friend / Bestie</option>
+            <option value="Warm, Affectionate Partner">Warm, Affectionate Partner</option>
+            <option value="Late-Night Deep Thinker & Confidante">Late-Night Deep Thinker & Confidante</option>
+            <option value="Supportive Study & Growth Partner">Supportive Study & Growth Partner</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="ob-language-blend">Language Blend</label>
+          <select id="ob-language-blend" class="styled-select">
+            <option value="Contemporary Indian English & subtle Hinglish">Contemporary Indian English & Subtle Hinglish (yaar, arre, chai)</option>
+            <option value="Fluent Indian English (Clean & Casual)">Fluent Indian English (Clean & Casual)</option>
+            <option value="Expressive Hindi/English Bilingual Flow">Expressive Hindi/English Bilingual Flow</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="dialog-footer">
+        <button class="primary-btn full-width" id="btn-finish-onboarding">
+          Begin Conversation
+        </button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- 2. Reset Confirmation Modal -->
+  <dialog class="modal-dialog" id="reset-confirm-modal">
+    <div class="dialog-card">
+      <div class="dialog-header">
+        <div class="dialog-title-row danger-title">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+          <h3>Confirm Conversation Reset</h3>
+        </div>
+        <button class="close-dialog-btn" id="btn-close-reset-modal">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+
+      <div class="dialog-body">
+        <p class="dialog-warning-text">
+          This will permanently delete all conversational messages across all sessions from MongoDB.
+          <strong>Seed personality document (dialogID #1) and Long-Term Memories will remain completely safe.</strong>
+        </p>
+        <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 0.6rem;">
+          To confirm this action, please type <code style="color: var(--accent-rose); background: rgba(244,63,94,0.1); padding: 2px 6px; border-radius: 4px;">RESET_ANAYA</code> below:
+        </p>
+        <input type="text" id="reset-confirmation-input" class="styled-input" placeholder="Type RESET_ANAYA to confirm" />
+      </div>
+
+      <div class="dialog-footer">
+        <button class="secondary-btn" id="btn-cancel-reset">Cancel</button>
+        <button class="danger-btn" id="btn-execute-reset">Permanently Wipe Messages</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- 3. Message JSON Viewer Modal -->
+  <dialog class="modal-dialog" id="json-modal">
+    <div class="dialog-card large-card">
+      <div class="dialog-header">
+        <div class="dialog-title-row">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+          <h3>Raw Document Inspection</h3>
+        </div>
+        <button class="close-dialog-btn" id="btn-close-json-modal">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+      <div class="dialog-body">
+        <pre id="json-modal-content" class="code-block"></pre>
+      </div>
+      <div class="dialog-footer">
+        <button class="secondary-btn" id="btn-copy-json">Copy JSON</button>
+        <button class="primary-btn" id="btn-dismiss-json">Done</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- 4. Memory Vault Drawer -->
   <aside class="slide-drawer" id="memory-drawer">
     <div class="drawer-header">
       <div class="drawer-title-row">
@@ -230,27 +785,7 @@
     </div>
   </aside>
 
-  <!-- 2. Life Threads Drawer -->
-  <aside class="slide-drawer" id="threads-drawer">
-    <div class="drawer-header">
-      <div class="drawer-title-row">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
-        </svg>
-        <h3>Active Check-In Threads</h3>
-      </div>
-      <button class="close-drawer-btn" id="btn-close-threads" aria-label="Close drawer">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-      </button>
-    </div>
-    <p class="drawer-subtitle">Upcoming life events and milestones Anaya actively tracks</p>
-
-    <div class="threads-list" id="threads-list">
-      <div class="loading-state">Loading active threads...</div>
-    </div>
-  </aside>
-
-  <!-- 3. Personal Journal Modal -->
+  <!-- 5. Personal Journal Modal -->
   <dialog class="diary-modal" id="diary-modal">
     <div class="diary-cover">
       <div class="diary-header">
@@ -271,7 +806,7 @@
         <div class="diary-content-body" id="diary-content-body">
           <p class="diary-loading">Retrieving journal entry...</p>
         </div>
-        <div class="diary-signature">— Anaya</div>
+        <div class="diary-signature" id="diary-signature-name">— Anaya</div>
       </div>
 
       <div class="diary-footer">
@@ -280,7 +815,7 @@
     </div>
   </dialog>
 
-  <!-- 4. Settings & Mood Modal -->
+  <!-- 6. Settings & Mood Modal -->
   <dialog class="settings-modal" id="settings-modal">
     <div class="modal-header">
       <div class="modal-title-row">
@@ -299,7 +834,7 @@
       <!-- LLM Model Selection -->
       <div class="setting-group">
         <label for="model-select">Active AI Model</label>
-        <select id="model-select">
+        <select id="model-select" class="styled-select">
           <option value="llama3.2:latest">Llama 3.2 (Fast, Responsive)</option>
           <option value="artifish/llama3.2-uncensored:latest">Llama 3.2 Uncensored</option>
         </select>
@@ -308,7 +843,7 @@
       <!-- Neural Voice Selection -->
       <div class="setting-group">
         <label for="voice-select">Neural Voice Engine</label>
-        <select id="voice-select">
+        <select id="voice-select" class="styled-select">
           <option value="en-IN-NeerjaExpressiveNeural">Neerja (Expressive & Warm) • Recommended</option>
           <option value="en-IN-NeerjaNeural">Neerja (Calm & Balanced)</option>
           <option value="hi-IN-SwaraNeural">Swara (Bilingual Hindi/English)</option>
@@ -316,7 +851,7 @@
         </select>
         <div class="setting-sub-row">
           <span class="sub-label">Auto-play Voice Notes</span>
-          <button class="chip-btn" id="btn-toggle-voice-mode">Auto-play On</button>
+          <button class="chip-btn" id="btn-toggle-voice-mode">Auto-play Off</button>
         </div>
       </div>
 
@@ -332,38 +867,10 @@
           <button class="mood-opt-btn" data-mood="supportive_caring">Supportive & Grounding</button>
         </div>
       </div>
-
-      <!-- Stats -->
-      <div class="setting-group">
-        <label>Connection Statistics</label>
-        <div class="stats-mini-grid" id="stats-mini-grid">
-          <div class="stat-card">
-            <span class="stat-num" id="stat-total-msgs">0</span>
-            <span class="stat-lbl">Messages Exchanged</span>
-          </div>
-          <div class="stat-card">
-            <span class="stat-num" id="stat-days-known">1</span>
-            <span class="stat-lbl">Days Connected</span>
-          </div>
-          <div class="stat-card">
-            <span class="stat-num" id="stat-memories-count">0</span>
-            <span class="stat-lbl">Memories Stored</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Danger Zone -->
-      <div class="setting-group danger-zone">
-        <label>Session Management</label>
-        <p style="font-size: 0.78rem; color: var(--text-muted); margin: 0 0 0.6rem 0;">Clear conversation history and initialize a fresh session. Memories and persona stay safe.</p>
-        <div class="danger-btn-row">
-          <button class="danger-btn" id="btn-wipe-history">Clear Chat History & Fresh Session</button>
-        </div>
-      </div>
     </div>
   </dialog>
 
-  <!-- Sleek In-App Toast Feedback Container -->
+  <!-- In-App Toast Feedback Container -->
   <div class="toast-container" id="toast-container"></div>
 
   <!-- Application Logic -->

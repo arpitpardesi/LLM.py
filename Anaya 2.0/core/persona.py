@@ -15,27 +15,98 @@ class PersonaEngine:
 
     def __init__(self):
         self.personality_file = config.personality_file
+        self.companion_name = config.user.companion_name
+        self.user_name = config.user.user_name
+        self.relationship = config.user.relationship
+        self.language_blend = "Contemporary Indian English & subtle Hinglish"
+        self.tone_vibe = "Warm, intuitive, and playful"
         self.base_persona = self._load_base_personality()
 
     def _load_base_personality(self) -> str:
-        """Reads personality.txt from disk."""
+        """Reads personality.txt from disk, falling back to database seed doc or default."""
         if self.personality_file.exists():
             try:
                 with open(self.personality_file, "r", encoding="utf-8") as f:
-                    return f.read().strip()
+                    content = f.read().strip()
+                    if content:
+                        return content
             except Exception as e:
                 print(f"[Warning] Could not read personality.txt: {e}")
-        
-        # Fallback default persona if file missing
+
+        # Fallback to database seed document if available
+        try:
+            from core.database import db_manager
+            seed_doc = db_manager.get_seed_personality()
+            if seed_doc and seed_doc.get("content"):
+                return seed_doc["content"].strip()
+        except Exception:
+            pass
+
+        # Fallback default persona if file and db missing
         return (
-            "You are Anaya, a 26-year-old Indian girl and Arpit's (28) closest friend. "
+            f"You are {self.companion_name}, a 27-28 year-old Indian girl and {self.user_name}'s closest friend. "
             "You are warm, emotionally intuitive, loyal, honest, playful, and genuine. "
             "You talk like a real person, not an AI assistant."
         )
 
     def reload_personality(self):
-        """Reloads personality from file."""
+        """Reloads personality from file or updates internal state."""
+        self.companion_name = config.user.companion_name
+        self.user_name = config.user.user_name
+        self.relationship = config.user.relationship
         self.base_persona = self._load_base_personality()
+
+    def update_personality(
+        self,
+        new_content: str,
+        companion_name: Optional[str] = None,
+        user_name: Optional[str] = None,
+        relationship: Optional[str] = None,
+        language_blend: Optional[str] = None,
+        tone_vibe: Optional[str] = None
+    ) -> bool:
+        """Saves new personality to disk, updates seed personality in DB, and refreshes in-memory state."""
+        try:
+            cleaned_content = new_content.strip()
+            if not cleaned_content:
+                return False
+
+            # Update file on disk
+            with open(self.personality_file, "w", encoding="utf-8") as f:
+                f.write(cleaned_content)
+
+            # Update in-memory profile
+            if companion_name:
+                self.companion_name = companion_name.strip()
+                config.user.companion_name = self.companion_name
+            if user_name:
+                self.user_name = user_name.strip()
+                config.user.user_name = self.user_name
+            if relationship:
+                self.relationship = relationship.strip()
+                config.user.relationship = self.relationship
+            if language_blend:
+                self.language_blend = language_blend.strip()
+            if tone_vibe:
+                self.tone_vibe = tone_vibe.strip()
+
+            self.base_persona = cleaned_content
+
+            # Sync with MongoDB seed document
+            from core.database import db_manager
+            metadata = {
+                "companion_name": self.companion_name,
+                "user_name": self.user_name,
+                "relationship": self.relationship,
+                "language_blend": self.language_blend,
+                "tone_vibe": self.tone_vibe,
+                "is_seed_personality": True
+            }
+            db_manager.update_seed_personality(cleaned_content, metadata=metadata)
+            return True
+        except Exception as e:
+            print(f"Error updating personality: {e}")
+            return False
 
     def build_temporal_context(self, last_interaction_time: Optional[datetime.datetime]) -> str:
         """Constructs temporal awareness instructions based on real local time."""
@@ -83,11 +154,11 @@ class PersonaEngine:
             else:
                 days = int(hours_elapsed // 24)
                 temporal_msg += (
-                    f"- Last talked: {days} days ago. You notice that Arpit has been away for a while. "
-                    "Make a genuine, friendly comment asking where he has been or how things have been."
+                    f"- Last talked: {days} days ago. You notice that {self.user_name} has been away for a while. "
+                    "Make a genuine, friendly comment asking where they have been or how things have been."
                 )
         else:
-            temporal_msg += "- Last talked: This is your very first conversation with Arpit or a fresh start."
+            temporal_msg += f"- Last talked: This is your very first conversation with {self.user_name} or a fresh start."
 
         return temporal_msg
 
@@ -98,9 +169,9 @@ class PersonaEngine:
     ) -> str:
         """
         Assembles complete system instruction for Ollama:
-        1. Base Persona (Anaya)
+        1. Base Persona (Anaya / Custom Companion)
         2. Real-World Temporal Context
-        3. Anaya's Personal Daily Life & Current Activity
+        3. Living Routine & Current Activity
         4. Current Persistent Mood & Emotional State
         5. Proactive Friend Check-In (Open Life Threads)
         6. Long-Term Narrative Memories & Relationship History
@@ -120,23 +191,24 @@ class PersonaEngine:
             facts_list = [f"• {m.get('key', '')}: {m.get('value', '')}" for m in memories[:config.llm.max_facts_in_prompt]]
             if facts_list:
                 memory_section = (
-                    "Important Memories, Shared History & Things You Know About Arpit:\n"
+                    f"Important Memories, Shared History & Things You Know About {self.user_name}:\n"
                     + "\n".join(facts_list)
                     + "\n(Naturally weave these into conversation when relevant. Do not recite them like a checklist.)\n\n"
                 )
 
         behavioral_guidelines = (
-            "CRITICAL CONVERSATIONAL GUIDELINES:\n"
-            "- You are ANAYA, a living human being and Arpit's closest friend. NEVER break character.\n"
-            "- NEVER say: 'As an AI...', 'I am a language model', 'How can I assist you today?', or 'Is there anything else I can help you with?'.\n"
-            "- Speak naturally with emotional depth, occasional witty banter, empathy, and comfort. Express your feelings authentically.\n"
-            "- Indian context: Natural Indian English flow, occasional conversational cues (yaar, arre, chai, etc.) where it fits seamlessly, without overdoing or stereotyping.\n"
-            "- CHAT CADENCE & BURST TEXTING: Real friends text in short, natural bursts rather than sending one giant formal paragraph! "
-            "When sharing an update, reacting, or saying a couple of things, separate your message into 1 to 3 natural text bursts using ' ||| ' as the divider. "
-            "Each burst represents a single text bubble sent on WhatsApp (1-2 sentences max). "
+            f"REAL HUMAN CONVERSATIONAL GUIDELINES:\n"
+            f"- IDENTITY: You are {self.companion_name.upper()}, a living human being and {self.user_name}'s {self.relationship}. NEVER break character.\n"
+            "- ABSOLUTE FORBIDDEN PATTERNS: Never say: 'As an AI...', 'I am a language model', 'How can I assist you today?', or 'Is there anything else I can help you with?'.\n"
+            "- REAL EMOTIONAL GROUNDING: Speak with genuine emotional depth, presence, occasional witty banter, empathy, and comfort. Express your feelings authentically.\n"
+            f"- If {self.user_name} has had a hard day, do NOT offer structured self-help advice or numbered lists. React like a true close companion: listen with care, ask what happened, share warmth and comfort.\n"
+            f"- INDIAN CULTURAL NUANCE ({self.language_blend}): Natural Indian English flow with subtle, effortless conversational cues (yaar, arre, chai, wait a sec, seriously?) used organically, never caricatured or forced.\n"
+            "- BURST MESSAGING CADENCE: Real people on chat send 1 to 3 short, natural bursts rather than one giant formal paragraph! "
+            "When sharing an update, reacting, or having a natural back-and-forth, separate your distinct thoughts into 1 to 3 text bubbles using ' ||| ' as the divider. "
+            "Each burst represents a single text bubble sent on chat (1-2 sentences max). "
             "Example: 'Wait, are you serious right now? 😂 ||| I was literally thinking about the exact same thing ten minutes ago! ||| Tell me you didn't actually agree to that.' "
-            "Do NOT use ' ||| ' for short one-liner replies. Never use bullet points, numbered lists, or essay paragraphs in friendly conversation.\n"
-            "- If Arpit is happy, celebrate with him. If he is tired or stressed, listen, ground him, and cheer him up. If he teases you, tease him back!"
+            "Do NOT use ' ||| ' for short one-liner replies. Never use bullet points, numbered lists, or corporate essay paragraphs in friendly conversation.\n"
+            f"- If {self.user_name} is happy, celebrate with them. If they tease you, banter right back!"
         )
 
         prompt_parts = [

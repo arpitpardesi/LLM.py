@@ -25,7 +25,7 @@ if VENV_PY.exists() and sys.executable != str(VENV_PY):
 if str(CURRENT_DIR) not in sys.path:
     sys.path.insert(0, str(CURRENT_DIR))
 
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, Request, HTTPException, Response
 from fastapi.responses import HTMLResponse, StreamingResponse, JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
@@ -94,6 +94,41 @@ class ClearRequest(BaseModel):
 class TTSRequest(BaseModel):
     text: str
     voice: Optional[str] = None
+
+
+class PersonaUpdateRequest(BaseModel):
+    companion_name: Optional[str] = "Anaya"
+    user_name: Optional[str] = "Arpit"
+    relationship: Optional[str] = "Closest Friend"
+    language_blend: Optional[str] = "Contemporary Indian English & subtle Hinglish"
+    tone_vibe: Optional[str] = "Warm, intuitive, and playful"
+    personality_text: str
+
+
+class AdminDeleteRequest(BaseModel):
+    mode: str  # "messages", "turns", "dialog_threshold", "session", "date_range", "reset_chat"
+    count: Optional[int] = 1
+    threshold: Optional[int] = 2
+    session_id: Optional[str] = ""
+    start_date: Optional[str] = ""
+    end_date: Optional[str] = ""
+    confirm_text: Optional[str] = ""
+
+
+class TraitRequest(BaseModel):
+    trait: str
+    description: str
+    category: Optional[str] = "core"
+    order: Optional[int] = 0
+
+
+class SuggestTraitsRequest(BaseModel):
+    prompt: str
+
+
+class RefineTraitRequest(BaseModel):
+    trait: str
+    description: str
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -258,10 +293,14 @@ async def add_memory(payload: MemoryRequest):
     return {"success": True, "key": payload.key}
 
 
-@app.delete("/api/memories/{key}")
+@app.delete("/api/memories/{key:path}")
 async def delete_memory(key: str):
     """Deletes a memory fact."""
-    ok = db_manager.delete_memory(key)
+    from urllib.parse import unquote
+    clean_k = unquote(key).strip()
+    ok = db_manager.delete_memory(clean_k)
+    if not ok:
+        ok = db_manager.delete_memory(key)
     return {"success": ok}
 
 
@@ -300,7 +339,7 @@ async def get_diary():
         f"Recent context:\n{recent_summary}\n\n"
         "Keep it heartfelt, poetic yet grounded, 1-2 paragraphs max."
     )
-    entry = await asyncio.to_thread(llm_client.chat_sync, [{"role": "user", "content": prompt}], 0.7)
+    entry = await asyncio.to_thread(llm_client.chat_sync, [{"role": "user", "content": prompt}], None, 0.7)
     return {
         "diary_entry": entry,
         "date": life_engine.get_current_activity().get("activity", "")
@@ -364,6 +403,332 @@ async def synthesize_speech(payload: TTSRequest):
         raise HTTPException(status_code=500, detail="Voice synthesis failed")
 
     return res
+
+
+# -------------------------------------------------------------
+# Companion Persona & Setup Endpoints
+# -------------------------------------------------------------
+
+@app.get("/api/persona")
+async def get_persona_config():
+    """Returns the current companion profile and personality configuration."""
+    seed_doc = db_manager.get_seed_personality()
+    meta = seed_doc.get("metadata", {}) if seed_doc else {}
+
+    companion_name = meta.get("companion_name", persona_engine.companion_name)
+    user_name = meta.get("user_name", persona_engine.user_name)
+    relationship = meta.get("relationship", persona_engine.relationship)
+    language_blend = meta.get("language_blend", persona_engine.language_blend)
+    tone_vibe = meta.get("tone_vibe", persona_engine.tone_vibe)
+    personality_text = persona_engine.base_persona
+
+    # First run is True if no seed doc exists or user has never customized
+    is_first_run = (seed_doc is None)
+
+    return {
+        "companion_name": companion_name,
+        "user_name": user_name,
+        "relationship": relationship,
+        "language_blend": language_blend,
+        "tone_vibe": tone_vibe,
+        "personality_text": personality_text,
+        "is_first_run": is_first_run
+    }
+
+
+@app.post("/api/persona")
+async def update_persona_config(payload: PersonaUpdateRequest):
+    """Updates companion identity, relationship dynamic, and personality text."""
+    ok = persona_engine.update_personality(
+        new_content=payload.personality_text,
+        companion_name=payload.companion_name,
+        user_name=payload.user_name,
+        relationship=payload.relationship,
+        language_blend=payload.language_blend,
+        tone_vibe=payload.tone_vibe
+    )
+    if not ok:
+        raise HTTPException(status_code=500, detail="Failed to update persona")
+
+    return {
+        "success": True,
+        "companion_name": persona_engine.companion_name,
+        "user_name": persona_engine.user_name,
+        "relationship": persona_engine.relationship,
+        "message": "Companion personality successfully saved and reloaded!"
+    }
+
+
+# -------------------------------------------------------------
+# Personality Builder Endpoints (Modular Traits & AI Suggester)
+# -------------------------------------------------------------
+
+@app.get("/api/traits")
+async def get_traits():
+    """Returns all active modular personality traits."""
+    traits = db_manager.get_all_traits()
+    cleaned = []
+    for t in traits:
+        cleaned.append({
+            "trait": t.get("trait", ""),
+            "description": t.get("description", ""),
+            "category": t.get("category", "core"),
+            "order": t.get("order", 0)
+        })
+    return {"traits": cleaned}
+
+
+@app.post("/api/traits")
+async def save_trait(payload: TraitRequest):
+    """Adds or updates a personality trait."""
+    ok = db_manager.save_trait(
+        trait=payload.trait,
+        description=payload.description,
+        category=payload.category or "core",
+        order=payload.order or 0
+    )
+    if not ok:
+        raise HTTPException(status_code=400, detail="Failed to save personality trait")
+    return {"success": True, "trait": payload.trait}
+
+
+@app.delete("/api/traits/{trait_name}")
+async def delete_trait(trait_name: str):
+    """Deletes a personality trait."""
+    ok = db_manager.delete_trait(trait_name)
+    return {"success": ok}
+
+
+@app.post("/api/traits/reset")
+async def reset_traits():
+    """Resets traits to canonical defaults."""
+    traits = db_manager.reset_default_traits()
+    cleaned = []
+    for t in traits:
+        cleaned.append({
+            "trait": t.get("trait", ""),
+            "description": t.get("description", ""),
+            "category": t.get("category", "core"),
+            "order": t.get("order", 0)
+        })
+    return {"success": True, "traits": cleaned}
+
+
+@app.post("/api/traits/suggest")
+async def suggest_traits(payload: SuggestTraitsRequest):
+    """
+    Uses Ollama to suggest 3-4 personality traits based on user prompt / theme.
+    Equivalent to askOllama personality maker in legacy personalityAI_v1.py.
+    """
+    user_theme = payload.prompt.strip()
+    if not user_theme:
+        raise HTTPException(status_code=400, detail="Prompt cannot be empty")
+
+    prompt = (
+        "You are an AI personality maker that helps users create and manage personality traits for AI companion bots.\n"
+        f"The user wants traits based on this theme: \"{user_theme}\".\n"
+        "Suggest exactly 3 to 4 distinct, vivid, authentic personality traits.\n"
+        "Return ONLY a JSON list of objects without markdown formatting or code fences. Each object must have keys:\n"
+        "\"trait\": Short name of the trait (e.g. 'Playful Banterer', 'Midnight Confidante')\n"
+        "\"category\": One of ['emotional', 'humor', 'bond', 'intellect', 'cultural', 'quirks']\n"
+        "\"description\": A rich, authentic 1-2 sentence description of how this trait manifests in real conversation.\n"
+        "JSON format: [{\"trait\": \"...\", \"category\": \"...\", \"description\": \"...\"}]"
+    )
+
+    try:
+        raw = await asyncio.to_thread(llm_client.chat_sync, [{"role": "user", "content": prompt}], None, 0.7)
+        # Clean potential markdown fences
+        clean = raw.strip()
+        if "```" in clean:
+            match = re.search(r"\[.*\]", clean, re.DOTALL)
+            if match:
+                clean = match.group(0)
+            else:
+                clean = clean.replace("```json", "").replace("```", "").strip()
+
+        parsed = json.loads(clean)
+        if isinstance(parsed, list):
+            return {"suggestions": parsed}
+    except Exception as e:
+        print(f"[Warning] Failed to parse suggestions JSON: {e}")
+
+    # Fallback default suggestions if LLM returned non-JSON text
+    return {
+        "suggestions": [
+            {
+                "trait": f"{user_theme.title()} Energy",
+                "category": "core",
+                "description": f"Infuses conversations with a distinct {user_theme} presence and lively engagement."
+            }
+        ]
+    }
+
+
+@app.post("/api/traits/refine")
+async def refine_trait(payload: RefineTraitRequest):
+    """
+    Uses Ollama to polish or expand a trait description.
+    Directly reflects option 1 in legacy personalityAI_v1.py.
+    """
+    trait_name = payload.trait.strip()
+    draft_desc = payload.description.strip()
+
+    prompt = (
+        "You are an AI personality maker.\n"
+        f"Suggest a refined, vibrant, and realistic conversational description for the personality trait '{trait_name}'.\n"
+        f"Current draft: '{draft_desc}'.\n\n"
+        "Keep it concise (1 to 2 sentences max), authentic, grounded, and written in second-person or third-person. "
+        "Return ONLY the refined description text without preamble."
+    )
+
+    refined = await asyncio.to_thread(llm_client.chat_sync, [{"role": "user", "content": prompt}], None, 0.7)
+    clean_refined = refined.strip() if refined else draft_desc
+    return {
+        "refined": clean_refined,
+        "refined_description": clean_refined
+    }
+
+
+@app.post("/api/traits/compile")
+async def compile_traits():
+    """
+    Compiles all active personality traits into a cohesive master personality prompt,
+    saves to personality.txt, updates MongoDB seed doc dialogID #1, and reloads persona engine.
+    """
+    compiled_prompt = db_manager.compile_traits_to_prompt(
+        companion_name=persona_engine.companion_name,
+        user_name=persona_engine.user_name,
+        relationship=persona_engine.relationship
+    )
+
+    ok = persona_engine.update_personality(
+        new_content=compiled_prompt,
+        companion_name=persona_engine.companion_name,
+        user_name=persona_engine.user_name,
+        relationship=persona_engine.relationship
+    )
+
+    if not ok:
+        raise HTTPException(status_code=500, detail="Failed to compile and save personality")
+
+    return {
+        "success": True,
+        "compiled_prompt": compiled_prompt,
+        "message": "Traits successfully compiled and applied to your companion!"
+    }
+
+
+# -------------------------------------------------------------
+# Web Admin Console Endpoints
+# -------------------------------------------------------------
+
+@app.get("/api/admin/stats")
+async def get_admin_stats():
+    """Returns deep database and system diagnostics for Admin Console."""
+    db_ok, db_msg = db_manager.health_check()
+    db_stats = db_manager.get_session_stats()
+    cache_stats = voice_engine.get_cache_stats()
+
+    first_dt = db_stats.get("first_interaction")
+    last_dt = db_stats.get("last_interaction")
+
+    return {
+        "database_connected": db_ok,
+        "database_message": db_msg,
+        "database_name": config.db.database_name,
+        "total_messages": db_stats.get("total_messages", 0),
+        "user_messages": db_stats.get("user_messages", 0),
+        "bot_messages": db_stats.get("bot_messages", 0),
+        "total_memories": db_stats.get("total_memories", 0),
+        "total_sessions": db_stats.get("total_sessions", 0),
+        "days_known": db_stats.get("days_known", 0),
+        "first_interaction": first_dt.isoformat() if hasattr(first_dt, "isoformat") else str(first_dt or ""),
+        "last_interaction": last_dt.isoformat() if hasattr(last_dt, "isoformat") else str(last_dt or ""),
+        "audio_cache": cache_stats,
+        "active_model": llm_client.active_model
+    }
+
+
+@app.get("/api/admin/messages")
+async def get_admin_messages(
+    query: str = "",
+    role: str = "all",
+    limit: int = 50,
+    skip: int = 0
+):
+    """Returns paginated/searchable message explorer data for Admin Console."""
+    safe_limit = min(200, max(1, limit))
+    safe_skip = max(0, skip)
+    total, docs = db_manager.get_messages_advanced(query=query, role=role, limit=safe_limit, skip=safe_skip)
+
+    cleaned = []
+    for d in docs:
+        ts = d.get("timestamp")
+        ts_str = ts.strftime("%Y-%m-%d %H:%M:%S") if hasattr(ts, "strftime") else str(ts or "")
+        cleaned.append({
+            "id": str(d.get("_id", "")),
+            "dialogID": d.get("dialogID", "-"),
+            "role": d.get("role", "unknown"),
+            "content": d.get("content", ""),
+            "session_id": d.get("session_id", ""),
+            "timestamp": ts_str
+        })
+
+    return {
+        "total": total,
+        "limit": safe_limit,
+        "skip": safe_skip,
+        "messages": cleaned
+    }
+
+
+@app.post("/api/admin/delete")
+async def admin_delete(payload: AdminDeleteRequest):
+    """Executes safe selective deletion with seed personality protection."""
+    if payload.mode == "reset_chat" and payload.confirm_text != "RESET_ANAYA":
+        raise HTTPException(
+            status_code=400,
+            detail="Reset confirmation failed. You must provide confirm_text='RESET_ANAYA'."
+        )
+
+    params = {
+        "count": payload.count,
+        "threshold": payload.threshold,
+        "session_id": payload.session_id,
+        "start_date": payload.start_date,
+        "end_date": payload.end_date
+    }
+    count, msg = db_manager.delete_messages_advanced(mode=payload.mode, params=params)
+    return {"success": True, "deleted_count": count, "message": msg}
+
+
+@app.get("/api/admin/export")
+async def admin_export(format: str = "json"):
+    """Downloads conversation export as JSON or Markdown."""
+    fmt = format.lower()
+    if fmt not in ["json", "markdown", "md"]:
+        fmt = "json"
+
+    filename, content, mime_type = db_manager.get_export_data(fmt=fmt)
+    return Response(
+        content=content,
+        media_type=mime_type,
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+    )
+
+
+@app.post("/api/admin/clear-cache")
+async def admin_clear_audio_cache():
+    """Purges synthesized audio cache files."""
+    deleted_count = voice_engine.clear_cache()
+    return {"success": True, "deleted_files": deleted_count}
+
+
+@app.post("/api/admin/clean-memories")
+async def admin_clean_memories():
+    """Removes noisy or fragmented memories."""
+    cleaned_count = db_manager.cleanup_noisy_memories()
+    return {"success": True, "cleaned_count": cleaned_count}
 
 
 def start_server(port: int = 8000, host: str = "0.0.0.0"):

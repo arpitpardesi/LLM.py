@@ -164,6 +164,33 @@ class VoiceEngine:
             print(f"[VoiceEngine Error] Synthesis failed: {e}")
             return None
 
+    def get_cache_stats(self) -> Dict[str, Any]:
+        """Returns statistics on the local audio cache."""
+        try:
+            mp3_files = list(self.audio_dir.glob("*.mp3"))
+            total_bytes = sum(f.stat().st_size for f in mp3_files if f.is_file())
+            return {
+                "file_count": len(mp3_files),
+                "total_bytes": total_bytes,
+                "total_mb": round(total_bytes / (1024 * 1024), 2)
+            }
+        except Exception:
+            return {"file_count": 0, "total_bytes": 0, "total_mb": 0.0}
+
+    def clear_cache(self) -> int:
+        """Deletes all cached synthesized MP3 files."""
+        deleted = 0
+        try:
+            for f in self.audio_dir.glob("*.mp3"):
+                try:
+                    f.unlink()
+                    deleted += 1
+                except Exception:
+                    pass
+            return deleted
+        except Exception:
+            return deleted
+
 
 # Singleton instance
 voice_engine = VoiceEngine()
