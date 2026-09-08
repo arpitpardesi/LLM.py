@@ -53,6 +53,14 @@ class CommandDispatcher:
             print_memories_table(memories)
             return True, False
 
+        if cmd in ["/unload", "/freemem", "/purge"]:
+            ok, msg = llm_client.unload_model()
+            if ok:
+                print_system_message("Model successfully unloaded from RAM/VRAM. Memory returned to system! ⚡")
+            else:
+                print_warning_message(f"Unload notice: {msg}")
+            return True, False
+
         if cmd == "/remember":
             if not args:
                 print_warning_message("Usage: /remember <fact or preference>")

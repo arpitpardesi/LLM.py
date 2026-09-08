@@ -79,9 +79,25 @@ class MemoryEngine:
 
         # Skip very short or trivial conversational inputs
         clean_text = user_text.strip()
-        if len(clean_text) < 14 or clean_text.lower() in [
+        if len(clean_text) < 14:
+            return
+
+        lower_text = clean_text.lower()
+        if lower_text in [
             "hi", "hello", "hey", "how are you", "what's up", "yes", "no", "ok", "bye", "good night", "gn"
         ]:
+            return
+
+        # If the user is asking a general question without personal markers, skip fact extraction
+        personal_markers = [
+            "i ", "i'm", "im ", "my ", "mine", "me ", "we ", "our", "i've", "ive ", "i'll", "ill ",
+            "i like", "i love", "i hate", "i feel", "i want", "i prefer", "started", "bought", "working on"
+        ]
+        if lower_text.endswith("?") and not any(p in lower_text for p in personal_markers):
+            return
+
+        # Also skip short non-personal phrases under 35 chars
+        if len(clean_text) < 35 and not any(p in lower_text for p in personal_markers):
             return
 
         extraction_prompt = (
@@ -104,7 +120,8 @@ class MemoryEngine:
         try:
             raw_result = llm_client.chat_sync(
                 messages=[{"role": "user", "content": extraction_prompt}],
-                temperature=0.1
+                temperature=0.1,
+                num_ctx=getattr(self.config, "num_ctx_internal", 768)
             )
             json_match = re.search(r"\{.*?\}", raw_result, re.DOTALL)
             if json_match:

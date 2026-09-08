@@ -218,20 +218,101 @@ def delete_records():
             console.print("[yellow]Deletion cancelled.[/yellow]")
 
 
+def show_llm_memory_status():
+    """Displays Ollama model memory footprint and optimization parameters."""
+    from core.llm_client import llm_client
+    loaded = llm_client.get_loaded_models()
+    table = Table(title="LLM Engine & Memory Status", border_style="magenta")
+    table.add_column("Parameter / Metric", style="bold")
+    table.add_column("Value", style="green")
+
+    table.add_row("Active Model", config.llm.active_model)
+    table.add_row("Temperature (Sampling)", str(config.llm.temperature))
+    table.add_row("Top-P (Nucleus Sampling)", str(config.llm.top_p))
+    table.add_row("Chat Context Cap (num_ctx)", f"{config.llm.num_ctx} tokens")
+    table.add_row("Internal Context Cap (num_ctx_internal)", f"{config.llm.num_ctx_internal} tokens")
+    table.add_row("Sliding History Turns", f"{config.llm.context_window_turns} messages")
+    table.add_row("Max Memory Facts In Prompt", str(config.llm.max_facts_in_prompt))
+    table.add_row("Memory Keep-Alive Timeout", config.llm.keep_alive)
+    table.add_row("CPU Performance Cores", str(config.llm.num_threads))
+    table.add_row("Real-Time SSE Streaming", "Enabled" if config.llm.stream_output else "Disabled")
+    table.add_row("Post-Stream Fact Extraction", "Enabled" if config.enable_fact_extraction else "Disabled")
+    table.add_row("Loaded in VRAM/RAM", "Yes (Active)" if loaded else "No (Idle / Released)")
+    if loaded:
+        for m in loaded:
+            table.add_row(f"  • {m['model']}", f"~{m['vram_mb']} MB (ctx: {m['context_length']})")
+
+    console.print(table)
+    if loaded:
+        if Confirm.ask("\nPurge model from memory right now?"):
+            ok, msg = llm_client.unload_model()
+            if ok:
+                console.print("[bold green]Model successfully purged from VRAM![/bold green]")
+            else:
+                console.print(f"[red]{msg}[/red]")
+
+
+def manage_memories():
+    """Allows viewing, searching, deleting individual memories, or clearing all memories."""
+    while True:
+        mems = db_manager.get_all_memories()
+        console.print(f"\n[bold magenta]── Memory Vault Manager ({len(mems)} memories) ──[/bold magenta]")
+        console.print("1. List all memories")
+        console.print("2. Search memories by keyword")
+        console.print("3. Delete a specific memory by key")
+        console.print("4. Wipe / Clear all memories")
+        console.print("5. Back to Main Menu")
+
+        choice = Prompt.ask("\nEnter choice (1-5)", choices=["1", "2", "3", "4", "5"])
+        if choice == "1":
+            if not mems:
+                console.print("[dim]No memories stored yet.[/dim]")
+            else:
+                table = Table(title=f"All Stored Memories ({len(mems)})", border_style="cyan")
+                table.add_column("Key / Topic", style="bold cyan")
+                table.add_column("Category", style="magenta")
+                table.add_column("Details / Value", style="white")
+                for m in mems:
+                    table.add_row(str(m.get("key", "")), str(m.get("category", "general")), str(m.get("value", "")))
+                console.print(table)
+        elif choice == "2":
+            q = Prompt.ask("Enter keyword to search in memories").strip().lower()
+            if q:
+                matches = [m for m in mems if q in str(m.get("key", "")).lower() or q in str(m.get("value", "")).lower()]
+                console.print(f"[bold green]Found {len(matches)} matching memories:[/bold green]")
+                for m in matches:
+                    console.print(f"• [cyan]{m.get('key')}[/cyan] ({m.get('category')}): {m.get('value')}")
+        elif choice == "3":
+            key_to_del = Prompt.ask("Enter exact key / topic of memory to delete").strip()
+            if key_to_del:
+                if Confirm.ask(f"Are you sure you want to delete memory '{key_to_del}'?"):
+                    if db_manager.delete_memory(key_to_del):
+                        console.print(f"[bold green]Memory '{key_to_del}' successfully deleted![/bold green]")
+                    else:
+                        console.print(f"[bold red]Could not find or delete memory '{key_to_del}'[/bold red]")
+        elif choice == "4":
+            if Confirm.ask(f"[bold red]WARNING: Permanently delete all {len(mems)} memories?[/bold red]"):
+                count = db_manager.clear_all_memories()
+                console.print(f"[bold green]Cleared {count} memories from database.[/bold green]")
+        elif choice == "5":
+            break
+
+
 def main_menu():
     """Main CLI driver for DB admin tool."""
     while True:
         console.print("\n[bold cyan]══════════════════════════════════════[/bold cyan]")
-        console.print("[bold #ff79c6] Anaya 2.0 Database Administration [/bold #ff79c6]")
+        console.print("[bold #ff79c6] Anaya 2.0 Administration & Maintenance [/bold #ff79c6]")
         console.print("[bold cyan]══════════════════════════════════════[/bold cyan]")
         console.print("1. View Database Statistics")
         console.print("2. Search Messages")
         console.print("3. Export Conversations (JSON / Markdown)")
         console.print("4. Safe Delete Messages")
-        console.print("5. View Long-Term Memories")
-        console.print("6. Exit")
+        console.print("5. Manage Long-Term Memories (View / Delete / Clear)")
+        console.print("6. View LLM & Memory Optimization Status / Free RAM")
+        console.print("7. Exit")
 
-        choice = Prompt.ask("\nEnter choice (1-6)", choices=["1", "2", "3", "4", "5", "6"])
+        choice = Prompt.ask("\nEnter choice (1-7)", choices=["1", "2", "3", "4", "5", "6", "7"])
 
         if choice == "1":
             show_db_stats()
@@ -242,12 +323,11 @@ def main_menu():
         elif choice == "4":
             delete_records()
         elif choice == "5":
-            mems = db_manager.get_all_memories()
-            console.print(f"\n[bold]Stored Memories ({len(mems)} items):[/bold]")
-            for m in mems:
-                console.print(f"• [cyan]{m.get('key')}[/cyan]: {m.get('value')} ([dim]{m.get('category')}[/dim])")
+            manage_memories()
         elif choice == "6":
-            console.print("[green]Exiting DB Admin tool.[/green]")
+            show_llm_memory_status()
+        elif choice == "7":
+            console.print("[green]Exiting Admin tool.[/green]")
             break
 
 

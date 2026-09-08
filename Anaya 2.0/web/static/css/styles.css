@@ -947,6 +947,66 @@ html, body {
   color: var(--accent-rose);
 }
 
+.delete-memory-btn {
+  background: rgba(244, 63, 94, 0.08);
+  border: 1px solid rgba(244, 63, 94, 0.2);
+  color: var(--accent-rose);
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 500;
+  padding: 3px 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+
+.delete-memory-btn:hover {
+  background: rgba(244, 63, 94, 0.2);
+  border-color: rgba(244, 63, 94, 0.4);
+  color: #ff4d6d;
+  transform: translateY(-1px);
+}
+
+.delete-memory-btn.confirming {
+  background: #f43f5e;
+  border-color: #f43f5e;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.vault-count-badge {
+  font-size: 0.7rem;
+  font-family: var(--font-mono, monospace);
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--bg-surface-3);
+  color: var(--text-muted);
+  border: 1px solid var(--border-subtle);
+  margin-left: 6px;
+}
+
+.admin-row-del-btn {
+  background: rgba(244, 63, 94, 0.08);
+  border: 1px solid rgba(244, 63, 94, 0.25);
+  color: var(--accent-rose);
+  padding: 4px 9px;
+  font-size: 0.75rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all var(--transition-fast);
+}
+
+.admin-row-del-btn:hover {
+  background: rgba(244, 63, 94, 0.22);
+  border-color: rgba(244, 63, 94, 0.5);
+  color: #ff4d6d;
+}
+
 .card-key {
   font-weight: 600;
   color: var(--text-primary);

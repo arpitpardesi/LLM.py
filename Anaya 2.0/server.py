@@ -131,6 +131,20 @@ class RefineTraitRequest(BaseModel):
     description: str
 
 
+class LLMConfigUpdateRequest(BaseModel):
+    num_ctx: Optional[int] = None
+    num_ctx_internal: Optional[int] = None
+    keep_alive: Optional[str] = None
+    num_threads: Optional[int] = None
+    context_window_turns: Optional[int] = None
+    max_facts_in_prompt: Optional[int] = None
+    enable_fact_extraction: Optional[bool] = None
+    active_model: Optional[str] = None
+    temperature: Optional[float] = None
+    top_p: Optional[float] = None
+    stream_output: Optional[bool] = None
+
+
 @app.get("/", response_class=HTMLResponse)
 async def serve_index():
     """Serves the main single page web application."""
@@ -149,12 +163,20 @@ async def get_status():
     mood_info = mood_engine.get_current_mood()
     stats = db_manager.get_session_stats()
     open_threads = db_manager.get_active_life_threads()
+    loaded_models = llm_client.get_loaded_models()
 
     return {
         "online": True,
         "database_connected": db_ok,
         "active_model": llm_client.active_model,
         "available_models": llm_client.list_models(),
+        "loaded_models": loaded_models,
+        "llm_memory": {
+            "num_ctx": getattr(config.llm, "num_ctx", 2048),
+            "keep_alive": getattr(config.llm, "keep_alive", "3m"),
+            "active_vram_mb": sum(m.get("vram_mb", 0) for m in loaded_models) if loaded_models else 0,
+            "is_loaded": len(loaded_models) > 0
+        },
         "companion": {
             "name": config.user.companion_name,
             "age": config.user.companion_age,
@@ -217,10 +239,13 @@ async def chat_endpoint(payload: ChatRequest):
         dialog_id=dialog_id
     )
 
-    # 2. Extract facts in background task
-    asyncio.create_task(asyncio.to_thread(memory_engine.extract_and_save_facts, user_text))
+    # 2. Instant rule-based mood shift (0.05ms regex, no LLM call)
+    try:
+        mood_engine.evaluate_conversational_shift(user_text)
+    except Exception:
+        pass
 
-    # 3. Assemble chat context
+    # 3. Assemble chat context with capped sliding window
     messages = memory_engine.build_chat_context(session_id=session_id)
 
     # 4. Generator function for SSE stream
@@ -243,6 +268,10 @@ async def chat_endpoint(payload: ChatRequest):
                     dialog_id=bot_dialog_id
                 )
 
+            # 6. Post-stream processing: Run fact extraction and proactive checks
+            # only AFTER streaming finishes to eliminate GPU contention and stuttering!
+            asyncio.create_task(asyncio.to_thread(memory_engine.extract_and_save_facts, user_text))
+
             done_payload = json.dumps({
                 "done": True,
                 "full_response": full_response.strip(),
@@ -262,6 +291,30 @@ async def chat_endpoint(payload: ChatRequest):
             "X-Accel-Buffering": "no"
         }
     )
+
+
+@app.post("/api/llm/unload")
+async def unload_llm_model():
+    """Unloads active LLM from memory (VRAM/RAM) immediately."""
+    ok, msg = llm_client.unload_model()
+    return {
+        "success": ok,
+        "message": msg,
+        "loaded_models": llm_client.get_loaded_models()
+    }
+
+
+@app.get("/api/llm/status")
+async def get_llm_status():
+    """Returns memory footprint, context length, and loaded models."""
+    loaded = llm_client.get_loaded_models()
+    return {
+        "active_model": llm_client.active_model,
+        "loaded_models": loaded,
+        "num_ctx": getattr(config.llm, "num_ctx", 2048),
+        "keep_alive": getattr(config.llm, "keep_alive", "3m"),
+        "total_vram_mb": sum(m.get("vram_mb", 0) for m in loaded) if loaded else 0
+    }
 
 
 @app.get("/api/memories")
@@ -293,7 +346,16 @@ async def add_memory(payload: MemoryRequest):
     return {"success": True, "key": payload.key}
 
 
+@app.delete("/api/memories")
+@app.delete("/api/admin/memories")
+async def clear_all_memories():
+    """Clears all stored memories from MongoDB."""
+    count = db_manager.clear_all_memories()
+    return {"success": True, "deleted_count": count}
+
+
 @app.delete("/api/memories/{key:path}")
+@app.delete("/api/admin/memories/{key:path}")
 async def delete_memory(key: str):
     """Deletes a memory fact."""
     from urllib.parse import unquote
@@ -729,6 +791,77 @@ async def admin_clean_memories():
     """Removes noisy or fragmented memories."""
     cleaned_count = db_manager.cleanup_noisy_memories()
     return {"success": True, "cleaned_count": cleaned_count}
+
+
+@app.get("/api/admin/llm-config")
+async def get_admin_llm_config():
+    """Returns detailed LLM memory and inference configuration."""
+    loaded = llm_client.get_loaded_models()
+    return {
+        "active_model": llm_client.active_model,
+        "available_models": llm_client.list_models(),
+        "loaded_models": loaded,
+        "total_vram_mb": sum(m.get("vram_mb", 0) for m in loaded) if loaded else 0,
+        "is_loaded": len(loaded) > 0,
+        "temperature": getattr(config.llm, "temperature", 0.75),
+        "top_p": getattr(config.llm, "top_p", 0.9),
+        "stream_output": getattr(config.llm, "stream_output", True),
+        "num_ctx": getattr(config.llm, "num_ctx", 2048),
+        "num_ctx_internal": getattr(config.llm, "num_ctx_internal", 768),
+        "keep_alive": getattr(config.llm, "keep_alive", "3m"),
+        "num_threads": getattr(config.llm, "num_threads", 6),
+        "context_window_turns": getattr(config.llm, "context_window_turns", 14),
+        "max_facts_in_prompt": getattr(config.llm, "max_facts_in_prompt", 6),
+        "enable_fact_extraction": getattr(config, "enable_fact_extraction", True),
+    }
+
+
+@app.post("/api/admin/llm-config")
+async def update_admin_llm_config(payload: LLMConfigUpdateRequest):
+    """Updates LLM inference parameters and memory constraints at runtime."""
+    if payload.active_model and payload.active_model != llm_client.active_model:
+        ok, msg = llm_client.switch_model(payload.active_model)
+        if not ok:
+            raise HTTPException(status_code=400, detail=msg)
+
+    if payload.temperature is not None:
+        config.llm.temperature = max(0.0, min(2.0, float(payload.temperature)))
+    if payload.top_p is not None:
+        config.llm.top_p = max(0.05, min(1.0, float(payload.top_p)))
+    if payload.stream_output is not None:
+        config.llm.stream_output = bool(payload.stream_output)
+    if payload.num_ctx is not None:
+        config.llm.num_ctx = max(512, min(32768, payload.num_ctx))
+    if payload.num_ctx_internal is not None:
+        config.llm.num_ctx_internal = max(256, min(8192, payload.num_ctx_internal))
+    if payload.keep_alive is not None:
+        config.llm.keep_alive = payload.keep_alive.strip()
+    if payload.num_threads is not None:
+        config.llm.num_threads = max(1, min(32, payload.num_threads))
+    if payload.context_window_turns is not None:
+        config.llm.context_window_turns = max(2, min(50, payload.context_window_turns))
+    if payload.max_facts_in_prompt is not None:
+        config.llm.max_facts_in_prompt = max(0, min(20, payload.max_facts_in_prompt))
+    if payload.enable_fact_extraction is not None:
+        config.enable_fact_extraction = payload.enable_fact_extraction
+
+    return {
+        "success": True,
+        "message": "All LLM parameters and optimizations updated successfully!",
+        "config": {
+            "active_model": llm_client.active_model,
+            "temperature": config.llm.temperature,
+            "top_p": config.llm.top_p,
+            "stream_output": config.llm.stream_output,
+            "num_ctx": config.llm.num_ctx,
+            "num_ctx_internal": config.llm.num_ctx_internal,
+            "keep_alive": config.llm.keep_alive,
+            "num_threads": config.llm.num_threads,
+            "context_window_turns": config.llm.context_window_turns,
+            "max_facts_in_prompt": config.llm.max_facts_in_prompt,
+            "enable_fact_extraction": config.enable_fact_extraction,
+        }
+    }
 
 
 def start_server(port: int = 8000, host: str = "0.0.0.0"):

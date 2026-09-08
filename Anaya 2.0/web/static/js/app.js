@@ -42,11 +42,13 @@ class AnayaApp {
     this.settingsModal = document.getElementById('settings-modal');
     this.onboardingModal = document.getElementById('onboarding-modal');
     this.resetConfirmModal = document.getElementById('reset-confirm-modal');
+    this.clearMemoriesModal = document.getElementById('clear-memories-modal');
     this.jsonModal = document.getElementById('json-modal');
 
     // Tab Navigation & Admin Explorer State
     this.currentTab = 'chat';
     this.currentTraits = [];
+    this.adminMemoriesCache = [];
     this.adminSkip = 0;
     this.adminLimit = 30;
     this.adminTotal = 0;
@@ -209,6 +211,37 @@ class AnayaApp {
       this.drawerOverlay.addEventListener('click', () => this.closeDrawers());
     }
 
+    // Vault Clear All button & Clear Memories modal
+    const btnVaultClearAll = document.getElementById('btn-vault-clear-all');
+    if (btnVaultClearAll) {
+      btnVaultClearAll.addEventListener('click', () => {
+        if (this.clearMemoriesModal) {
+          try { this.clearMemoriesModal.showModal(); } catch (_) { this.clearMemoriesModal.setAttribute('open', ''); }
+        }
+      });
+    }
+
+    const btnCloseClearMem = document.getElementById('btn-close-clear-memories-modal');
+    const btnCancelClearMem = document.getElementById('btn-cancel-clear-memories');
+    [btnCloseClearMem, btnCancelClearMem].forEach((btn) => {
+      if (btn) btn.addEventListener('click', () => this.clearMemoriesModal?.close());
+    });
+
+    const btnConfirmClearMem = document.getElementById('btn-confirm-clear-memories');
+    if (btnConfirmClearMem) {
+      btnConfirmClearMem.addEventListener('click', async () => {
+        try {
+          btnConfirmClearMem.disabled = true;
+          btnConfirmClearMem.textContent = 'Deleting...';
+          await this.clearAllMemories();
+        } finally {
+          btnConfirmClearMem.disabled = false;
+          btnConfirmClearMem.textContent = 'Yes, Delete All Memories';
+          this.clearMemoriesModal?.close();
+        }
+      });
+    }
+
     // Dismiss dialogs when clicking on outer backdrop
     if (this.settingsModal) {
       this.settingsModal.addEventListener('click', (e) => {
@@ -221,6 +254,13 @@ class AnayaApp {
       this.diaryModal.addEventListener('click', (e) => {
         if (e.target === this.diaryModal) {
           this.diaryModal.close();
+        }
+      });
+    }
+    if (this.clearMemoriesModal) {
+      this.clearMemoriesModal.addEventListener('click', (e) => {
+        if (e.target === this.clearMemoriesModal) {
+          this.clearMemoriesModal.close();
         }
       });
     }
@@ -242,12 +282,38 @@ class AnayaApp {
     });
 
     // Save memory form
-    document.getElementById('btn-save-memory').addEventListener('click', () => this.saveNewMemory());
+    const btnSaveMem = document.getElementById('btn-save-memory');
+    if (btnSaveMem) {
+      btnSaveMem.addEventListener('click', () => this.saveNewMemory());
+    }
 
     // Settings model select
-    document.getElementById('model-select').addEventListener('change', (e) => {
-      this.changeModel(e.target.value);
-    });
+    const selModel = document.getElementById('model-select');
+    if (selModel) {
+      selModel.addEventListener('change', (e) => {
+        this.changeModel(e.target.value);
+      });
+    }
+
+    // Unload / Free RAM button
+    const btnUnload = document.getElementById('btn-unload-model');
+    if (btnUnload) {
+      btnUnload.addEventListener('click', async () => {
+        try {
+          btnUnload.disabled = true;
+          btnUnload.textContent = 'Freeing...';
+          const res = await fetch('/api/llm/unload', { method: 'POST' });
+          const data = await res.json();
+          this.showToast(data.message || 'RAM freed successfully! ⚡', 'success');
+          await this.refreshStatus();
+        } catch (e) {
+          this.showToast('Failed to unload model: ' + e.message, 'danger');
+        } finally {
+          btnUnload.disabled = false;
+          btnUnload.textContent = 'Free RAM ⚡';
+        }
+      });
+    }
 
     // Mood buttons
     document.querySelectorAll('.mood-opt-btn').forEach((btn) => {
@@ -297,6 +363,32 @@ class AnayaApp {
       btnRefreshAdmin.addEventListener('click', () => this.loadAdminData());
     }
 
+    // Admin LLM & Memory Optimization
+    const btnSaveAdminLLM = document.getElementById('btn-save-admin-llm');
+    if (btnSaveAdminLLM) {
+      btnSaveAdminLLM.addEventListener('click', () => this.saveAdminLLMConfig());
+    }
+
+    const btnAdminPurgeRAM = document.getElementById('btn-admin-purge-ram');
+    if (btnAdminPurgeRAM) {
+      btnAdminPurgeRAM.addEventListener('click', async () => {
+        try {
+          btnAdminPurgeRAM.disabled = true;
+          btnAdminPurgeRAM.textContent = 'Purging...';
+          const res = await fetch('/api/llm/unload', { method: 'POST' });
+          const data = await res.json();
+          this.showToast(data.message || 'Model unloaded from RAM! ⚡', 'success');
+          await this.fetchAdminLLMConfig();
+          await this.refreshStatus();
+        } catch (e) {
+          this.showToast('Purge error: ' + e.message, 'danger');
+        } finally {
+          btnAdminPurgeRAM.disabled = false;
+          btnAdminPurgeRAM.textContent = 'Purge VRAM ⚡';
+        }
+      });
+    }
+
     const btnAdminSearch = document.getElementById('btn-admin-search');
     if (btnAdminSearch) {
       btnAdminSearch.addEventListener('click', () => {
@@ -304,6 +396,82 @@ class AnayaApp {
         this.adminSkip = 0;
         this.loadAdminMessages();
       });
+    }
+
+    // Admin Memory Explorer bindings
+    const btnAdminWipeMem = document.getElementById('btn-admin-wipe-memories');
+    if (btnAdminWipeMem) {
+      btnAdminWipeMem.addEventListener('click', () => {
+        if (this.clearMemoriesModal) {
+          try { this.clearMemoriesModal.showModal(); } catch (_) { this.clearMemoriesModal.setAttribute('open', ''); }
+        }
+      });
+    }
+
+    const btnAdminToggleAddMem = document.getElementById('btn-admin-toggle-add-mem');
+    const adminAddMemPanel = document.getElementById('admin-add-memory-panel');
+    if (btnAdminToggleAddMem && adminAddMemPanel) {
+      btnAdminToggleAddMem.addEventListener('click', () => {
+        const isHidden = adminAddMemPanel.style.display === 'none';
+        adminAddMemPanel.style.display = isHidden ? 'block' : 'none';
+        btnAdminToggleAddMem.textContent = isHidden ? '✕ Close Panel' : '+ Add Memory';
+      });
+    }
+
+    const btnAdminSaveMem = document.getElementById('btn-admin-save-memory');
+    if (btnAdminSaveMem) {
+      btnAdminSaveMem.addEventListener('click', async () => {
+        const key = document.getElementById('admin-new-mem-key')?.value.trim();
+        const val = document.getElementById('admin-new-mem-val')?.value.trim();
+        const cat = document.getElementById('admin-new-mem-cat')?.value || 'general';
+
+        if (!key || !val) {
+          this.showToast('Please provide both memory topic and details.', 'warning');
+          return;
+        }
+
+        try {
+          btnAdminSaveMem.disabled = true;
+          btnAdminSaveMem.textContent = 'Saving...';
+          const res = await fetch('/api/memories', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ key, value: val, category: cat })
+          });
+          if (res.ok) {
+            const kEl = document.getElementById('admin-new-mem-key');
+            const vEl = document.getElementById('admin-new-mem-val');
+            if (kEl) kEl.value = '';
+            if (vEl) vEl.value = '';
+            this.showToast(`Memory "${key}" saved to vault! ✨`, 'success');
+            await this.loadAdminMemories();
+            this.fetchMemories();
+            this.refreshStatus();
+          } else {
+            this.showToast('Failed to save memory', 'danger');
+          }
+        } catch (e) {
+          this.showToast('Error saving memory: ' + e.message, 'danger');
+        } finally {
+          btnAdminSaveMem.disabled = false;
+          btnAdminSaveMem.textContent = 'Save';
+        }
+      });
+    }
+
+    const adminMemSearch = document.getElementById('admin-mem-search-input');
+    if (adminMemSearch) {
+      adminMemSearch.addEventListener('input', () => this.renderAdminMemories());
+    }
+
+    const adminMemCat = document.getElementById('admin-mem-cat-filter');
+    if (adminMemCat) {
+      adminMemCat.addEventListener('change', () => this.renderAdminMemories());
+    }
+
+    const btnAdminMemRefresh = document.getElementById('btn-admin-mem-refresh');
+    if (btnAdminMemRefresh) {
+      btnAdminMemRefresh.addEventListener('click', () => this.loadAdminMemories());
     }
 
     const adminSearchInput = document.getElementById('admin-search-input');
@@ -533,6 +701,10 @@ class AnayaApp {
       if (this.statusMood && living.mood_name) {
         this.statusMood.textContent = living.mood_name;
       }
+      const activeMoodTag = document.getElementById('companion-active-mood-tag');
+      if (activeMoodTag && living.mood_name) {
+        activeMoodTag.textContent = `Current Mood: ${living.mood_name}`;
+      }
       if (this.statusMusic && living.music) {
         this.statusMusic.textContent = living.music;
       }
@@ -560,10 +732,21 @@ class AnayaApp {
       if (daysKnown) daysKnown.textContent = stats.days_known || 1;
       if (memCount) memCount.textContent = stats.total_memories || 0;
 
-      // Update model dropdown selection
+      // Update model dropdown selection and RAM status
       const modelSelect = document.getElementById('model-select');
       if (modelSelect && data.active_model) {
         modelSelect.value = data.active_model;
+      }
+
+      const ramStatus = document.getElementById('llm-ram-status');
+      if (ramStatus && data.llm_memory) {
+        if (data.llm_memory.is_loaded) {
+          ramStatus.textContent = `RAM: ~${data.llm_memory.active_vram_mb} MB (Active)`;
+          ramStatus.style.color = '#38bdf8';
+        } else {
+          ramStatus.textContent = 'RAM: 0 MB (Idle / Unloaded)';
+          ramStatus.style.color = '#a1a1aa';
+        }
       }
     } catch (e) {
       console.warn('Status refresh error:', e);
@@ -1393,20 +1576,25 @@ class AnayaApp {
 
   async fetchMemories() {
     const listEl = document.getElementById('memories-list');
-    listEl.innerHTML = '<div class="loading-state">Loading memories...</div>';
+    if (listEl) listEl.innerHTML = '<div class="loading-state">Loading memories...</div>';
 
     try {
       const res = await fetch('/api/memories');
       const data = await res.json();
       this.memoriesCache = data.memories || [];
+      const countBadge = document.getElementById('vault-count-badge');
+      if (countBadge) {
+        countBadge.textContent = `${this.memoriesCache.length} items`;
+      }
       this.renderMemoriesList();
     } catch (e) {
-      listEl.innerHTML = '<div class="loading-state">Error loading memories</div>';
+      if (listEl) listEl.innerHTML = '<div class="loading-state">Error loading memories</div>';
     }
   }
 
   renderMemoriesList() {
     const listEl = document.getElementById('memories-list');
+    if (!listEl) return;
     listEl.innerHTML = '';
 
     const filtered =
@@ -1430,18 +1618,52 @@ class AnayaApp {
       card.innerHTML = `
         <div class="card-top-row">
           <span class="cat-badge">${safeCat}</span>
-          <button class="delete-item-btn" title="Delete memory" aria-label="Delete memory">&times;</button>
+          <button class="delete-memory-btn" title="Delete memory" aria-label="Delete memory">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              <line x1="10" y1="11" x2="10" y2="17"></line>
+              <line x1="14" y1="11" x2="14" y2="17"></line>
+            </svg>
+            <span class="del-label">Delete</span>
+          </button>
         </div>
         <div class="card-key">${safeKey}</div>
         <div class="card-val">${safeVal}</div>
       `;
 
-      const delBtn = card.querySelector('.delete-item-btn');
+      const delBtn = card.querySelector('.delete-memory-btn');
       if (delBtn) {
-        delBtn.addEventListener('click', (e) => {
+        delBtn.addEventListener('click', async (e) => {
           e.stopPropagation();
           e.preventDefault();
-          this.deleteMemory(m.key);
+          if (delBtn.dataset.confirming === 'true') {
+            delBtn.disabled = true;
+            delBtn.innerHTML = '<span>Deleting...</span>';
+            await this.deleteMemory(m.key, false);
+          } else {
+            delBtn.dataset.confirming = 'true';
+            delBtn.classList.add('confirming');
+            delBtn.innerHTML = `
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              <span>Confirm?</span>
+            `;
+            setTimeout(() => {
+              if (delBtn && delBtn.dataset.confirming === 'true') {
+                delBtn.dataset.confirming = 'false';
+                delBtn.classList.remove('confirming');
+                delBtn.innerHTML = `
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    <line x1="10" y1="11" x2="10" y2="17"></line>
+                    <line x1="14" y1="11" x2="14" y2="17"></line>
+                  </svg>
+                  <span class="del-label">Delete</span>
+                `;
+              }
+            }, 3500);
+          }
         });
       }
 
@@ -1472,6 +1694,9 @@ class AnayaApp {
         if (vEl) vEl.value = '';
         this.showToast(`Memory "${key}" saved to vault`, 'success');
         await this.fetchMemories();
+        if (this.currentTab === 'admin') {
+          this.loadAdminMemories();
+        }
         this.refreshStatus();
       } else {
         this.showToast('Failed to save memory', 'danger');
@@ -1481,8 +1706,8 @@ class AnayaApp {
     }
   }
 
-  async deleteMemory(key) {
-    if (!confirm(`Delete memory "${key}"?`)) return;
+  async deleteMemory(key, needConfirm = false) {
+    if (needConfirm && !confirm(`Delete memory "${key}"?`)) return;
     try {
       const res = await fetch(`/api/memories/${encodeURIComponent(key)}`, { method: 'DELETE' });
       const data = await res.json();
@@ -1492,9 +1717,31 @@ class AnayaApp {
         this.showToast(`Could not delete memory "${key}"`, 'warning');
       }
       await this.fetchMemories();
+      if (this.currentTab === 'admin') {
+        await this.loadAdminMemories();
+      }
       this.refreshStatus();
     } catch (e) {
       this.showToast('Error deleting memory: ' + e.message, 'danger');
+    }
+  }
+
+  async clearAllMemories() {
+    try {
+      const res = await fetch('/api/memories', { method: 'DELETE' });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        this.showToast(`All memories cleared (${data.deleted_count} deleted) 🗑️`, 'info');
+      } else {
+        this.showToast('Failed to clear memories', 'danger');
+      }
+      await this.fetchMemories();
+      if (this.currentTab === 'admin') {
+        await this.loadAdminMemories();
+      }
+      this.refreshStatus();
+    } catch (e) {
+      this.showToast('Error clearing memories: ' + e.message, 'danger');
     }
   }
 
@@ -1580,28 +1827,12 @@ class AnayaApp {
   // =========================================================================
 
   openSettingsModal() {
-    if (!this.settingsModal) return;
-    const voiceSelect = document.getElementById('voice-select');
-    if (voiceSelect) {
-      voiceSelect.value = this.selectedVoice;
-    }
-    const voiceModeBtn = document.getElementById('btn-toggle-voice-mode');
-    if (voiceModeBtn) {
-      voiceModeBtn.textContent = this.voiceEnabled ? 'Auto-play On' : 'Auto-play Off';
-      voiceModeBtn.style.color = this.voiceEnabled ? 'var(--accent-pink)' : 'var(--text-dim)';
-    }
-
-    // Highlight currently active mood
-    const activeMood = this.currentMoodKey || this.currentStatusData?.living_state?.mood_key || '';
-    document.querySelectorAll('.mood-opt-btn').forEach((btn) => {
-      const m = btn.getAttribute('data-mood');
-      btn.classList.toggle('active', m === activeMood);
-    });
-
-    try {
-      this.settingsModal.showModal();
-    } catch (e) {
-      this.settingsModal.setAttribute('open', '');
+    this.switchTab('admin');
+    const card = document.getElementById('admin-companion-settings-card');
+    if (card) {
+      setTimeout(() => {
+        card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 80);
     }
   }
 
@@ -1903,7 +2134,9 @@ You are Anaya, a 27-28 year-old Indian girl, and my closest friend. You’re not
   async loadAdminData() {
     await Promise.all([
       this.fetchAdminStats(),
-      this.loadAdminMessages()
+      this.loadAdminMessages(),
+      this.loadAdminMemories(),
+      this.fetchAdminLLMConfig()
     ]);
   }
 
@@ -1941,6 +2174,211 @@ You are Anaya, a 27-28 year-old Indian girl, and my closest friend. You’re not
     } catch (e) {
       console.warn('Error fetching admin stats:', e);
     }
+  }
+
+  async fetchAdminLLMConfig() {
+    try {
+      const res = await fetch('/api/admin/llm-config');
+      if (!res.ok) return;
+      const data = await res.json();
+
+      const elModel = document.getElementById('admin-active-model');
+      const elNumCtx = document.getElementById('admin-num-ctx');
+      const elKeepAlive = document.getElementById('admin-keep-alive');
+      const elThreads = document.getElementById('admin-num-threads');
+      const elCtxInternal = document.getElementById('admin-num-ctx-internal');
+      const elTurns = document.getElementById('admin-context-turns');
+      const elTemperature = document.getElementById('admin-temperature');
+      const elTopP = document.getElementById('admin-top-p');
+      const elMaxFacts = document.getElementById('admin-max-facts');
+      const elStreamOutput = document.getElementById('admin-stream-output');
+      const elFactExtraction = document.getElementById('admin-enable-fact-extraction');
+      const elRamTag = document.getElementById('admin-llm-ram-tag');
+
+      if (elModel && data.active_model) elModel.value = data.active_model;
+      if (elNumCtx && data.num_ctx) elNumCtx.value = String(data.num_ctx);
+      if (elKeepAlive && data.keep_alive) elKeepAlive.value = data.keep_alive;
+      if (elThreads && data.num_threads) elThreads.value = String(data.num_threads);
+      if (elCtxInternal && data.num_ctx_internal) elCtxInternal.value = String(data.num_ctx_internal);
+      if (elTurns && data.context_window_turns) elTurns.value = String(data.context_window_turns);
+      if (elTemperature && data.temperature !== undefined) elTemperature.value = String(data.temperature);
+      if (elTopP && data.top_p !== undefined) elTopP.value = String(data.top_p);
+      if (elMaxFacts && data.max_facts_in_prompt !== undefined) elMaxFacts.value = String(data.max_facts_in_prompt);
+      if (elStreamOutput && data.stream_output !== undefined) elStreamOutput.checked = !!data.stream_output;
+      if (elFactExtraction) elFactExtraction.checked = !!data.enable_fact_extraction;
+
+      if (elRamTag) {
+        if (data.is_loaded) {
+          elRamTag.textContent = `VRAM: ~${data.total_vram_mb} MB (Active)`;
+          elRamTag.style.color = '#38bdf8';
+        } else {
+          elRamTag.textContent = 'VRAM: 0 MB (Idle / Released)';
+          elRamTag.style.color = '#a1a1aa';
+        }
+      }
+    } catch (e) {
+      console.warn('Error fetching admin LLM config:', e);
+    }
+  }
+
+  async saveAdminLLMConfig() {
+    const btn = document.getElementById('btn-save-admin-llm');
+    try {
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Applying...';
+      }
+
+      const payload = {
+        active_model: document.getElementById('admin-active-model')?.value,
+        num_ctx: parseInt(document.getElementById('admin-num-ctx')?.value, 10),
+        keep_alive: document.getElementById('admin-keep-alive')?.value,
+        num_threads: parseInt(document.getElementById('admin-num-threads')?.value, 10),
+        num_ctx_internal: parseInt(document.getElementById('admin-num-ctx-internal')?.value, 10),
+        context_window_turns: parseInt(document.getElementById('admin-context-turns')?.value, 10),
+        temperature: parseFloat(document.getElementById('admin-temperature')?.value),
+        top_p: parseFloat(document.getElementById('admin-top-p')?.value),
+        max_facts_in_prompt: parseInt(document.getElementById('admin-max-facts')?.value, 10),
+        stream_output: document.getElementById('admin-stream-output')?.checked,
+        enable_fact_extraction: document.getElementById('admin-enable-fact-extraction')?.checked
+      };
+
+      const res = await fetch('/api/admin/llm-config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || 'Failed to update LLM configuration');
+      }
+
+      const data = await res.json();
+      this.showToast(data.message || 'LLM optimization applied! ✨', 'success');
+      await this.fetchAdminLLMConfig();
+      await this.refreshStatus();
+    } catch (e) {
+      this.showToast(e.message || 'Error saving LLM settings', 'danger');
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = 'Save & Apply Settings ✨';
+      }
+    }
+  }
+
+  async loadAdminMemories() {
+    const tbody = document.getElementById('admin-memories-tbody');
+    const countTag = document.getElementById('admin-memories-count-tag');
+    if (!tbody) return;
+
+    try {
+      const res = await fetch('/api/memories');
+      if (!res.ok) return;
+      const data = await res.json();
+      this.adminMemoriesCache = data.memories || [];
+
+      if (countTag) {
+        countTag.textContent = `${this.adminMemoriesCache.length} Memories`;
+      }
+
+      this.renderAdminMemories();
+    } catch (e) {
+      console.warn('Error loading admin memories:', e);
+      tbody.innerHTML = '<tr><td colspan="5" class="table-placeholder error">Error loading memories</td></tr>';
+    }
+  }
+
+  renderAdminMemories() {
+    const tbody = document.getElementById('admin-memories-tbody');
+    const infoSpan = document.getElementById('admin-mem-pagination-info');
+    if (!tbody) return;
+
+    const searchQ = (document.getElementById('admin-mem-search-input')?.value || '').trim().toLowerCase();
+    const catFilter = document.getElementById('admin-mem-cat-filter')?.value || 'all';
+
+    let list = this.adminMemoriesCache || [];
+    if (catFilter !== 'all') {
+      list = list.filter((m) => (m.category || 'general') === catFilter);
+    }
+    if (searchQ) {
+      list = list.filter((m) =>
+        (m.key || '').toLowerCase().includes(searchQ) ||
+        (m.value || '').toLowerCase().includes(searchQ)
+      );
+    }
+
+    if (infoSpan) {
+      infoSpan.textContent = `Showing ${list.length} of ${this.adminMemoriesCache.length} memories`;
+    }
+
+    if (list.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" class="table-placeholder">No matching memories found in vault.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = '';
+    list.forEach((m) => {
+      const tr = document.createElement('tr');
+      const safeCat = this.escapeHtml(m.category || 'general');
+      const safeKey = this.escapeHtml(m.key || '');
+      const safeVal = this.escapeHtml(m.value || '');
+      const updatedTime = m.updated_at ? new Date(m.updated_at).toLocaleString() : '—';
+
+      tr.innerHTML = `
+        <td><span class="cat-badge">${safeCat}</span></td>
+        <td style="font-weight: 600; color: var(--text-primary);">${safeKey}</td>
+        <td style="color: var(--text-secondary); line-height: 1.4;">${safeVal}</td>
+        <td style="font-size: 0.78rem; color: var(--text-dim); font-family: monospace;">${updatedTime}</td>
+        <td style="text-align: center;">
+          <button class="admin-row-del-btn" title="Delete this memory" data-key="${encodeURIComponent(m.key)}">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              <line x1="10" y1="11" x2="10" y2="17"></line>
+              <line x1="14" y1="11" x2="14" y2="17"></line>
+            </svg>
+            <span>Delete</span>
+          </button>
+        </td>
+      `;
+
+      const delBtn = tr.querySelector('.admin-row-del-btn');
+      if (delBtn) {
+        delBtn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          if (delBtn.dataset.confirming === 'true') {
+            delBtn.disabled = true;
+            delBtn.innerHTML = '<span>Deleting...</span>';
+            await this.deleteMemory(m.key, false);
+          } else {
+            delBtn.dataset.confirming = 'true';
+            delBtn.innerHTML = '<span>Confirm?</span>';
+            delBtn.style.background = '#f43f5e';
+            delBtn.style.color = '#ffffff';
+            setTimeout(() => {
+              if (delBtn && delBtn.dataset.confirming === 'true') {
+                delBtn.dataset.confirming = 'false';
+                delBtn.style.background = '';
+                delBtn.style.color = '';
+                delBtn.innerHTML = `
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    <line x1="10" y1="11" x2="10" y2="17"></line>
+                    <line x1="14" y1="11" x2="14" y2="17"></line>
+                  </svg>
+                  <span>Delete</span>
+                `;
+              }
+            }, 3500);
+          }
+        });
+      }
+
+      tbody.appendChild(tr);
+    });
   }
 
   async loadAdminMessages() {

@@ -4,7 +4,7 @@ Handles Ollama interactions with streaming, model verification, health checks, a
 """
 
 import time
-from typing import List, Dict, Generator, Optional, Tuple
+from typing import List, Dict, Generator, Optional, Tuple, Any
 import ollama
 
 from config import config
@@ -54,9 +54,15 @@ class LLMClient:
         return False, f"Model '{target}' not found. Available models: {', '.join(available)}"
 
     def switch_model(self, new_model: str) -> Tuple[bool, str]:
-        """Switches the active model."""
+        """Switches the active model and frees memory from the old model."""
         ok, msg = self.verify_model(new_model)
         if ok:
+            old_model = self.active_model
+            if old_model and old_model != new_model:
+                try:
+                    ollama.chat(model=old_model, messages=[], keep_alive=0)
+                except Exception:
+                    pass
             self.active_model = new_model
             self.config.active_model = new_model
             return True, f"Active model switched to '{new_model}'."
@@ -66,24 +72,32 @@ class LLMClient:
         self,
         messages: List[Dict[str, str]],
         model: Optional[str] = None,
-        temperature: Optional[float] = None
+        temperature: Optional[float] = None,
+        num_ctx: Optional[int] = None,
     ) -> Generator[str, None, None]:
         """
         Streams chat completion tokens from Ollama.
-        Yields chunk string fragments.
+        Yields chunk string fragments with strict context window limits.
         """
         target_model = model or self.active_model
         temp = temperature if temperature is not None else self.config.temperature
+        ctx = num_ctx if num_ctx is not None else getattr(self.config, "num_ctx", 2048)
+
+        options = {
+            "temperature": temp,
+            "top_p": self.config.top_p,
+            "num_ctx": ctx,
+        }
+        if hasattr(self.config, "num_threads") and self.config.num_threads:
+            options["num_thread"] = self.config.num_threads
 
         try:
             stream = ollama.chat(
                 model=target_model,
                 messages=messages,
                 stream=True,
-                options={
-                    "temperature": temp,
-                    "top_p": self.config.top_p,
-                }
+                keep_alive=getattr(self.config, "keep_alive", "3m"),
+                options=options
             )
             for chunk in stream:
                 content = ""
@@ -100,18 +114,30 @@ class LLMClient:
         self,
         messages: List[Dict[str, str]],
         model: Optional[str] = None,
-        temperature: float = 0.3
+        temperature: float = 0.2,
+        num_ctx: Optional[int] = None,
     ) -> str:
         """
         Non-streaming chat completion for internal reasoning and fact extraction.
+        Uses a lightweight context window to minimize memory allocation.
         """
         target_model = model or self.active_model
+        ctx = num_ctx if num_ctx is not None else getattr(self.config, "num_ctx_internal", 768)
+
+        options = {
+            "temperature": temperature,
+            "num_ctx": ctx,
+        }
+        if hasattr(self.config, "num_threads") and self.config.num_threads:
+            options["num_thread"] = self.config.num_threads
+
         try:
             response = ollama.chat(
                 model=target_model,
                 messages=messages,
                 stream=False,
-                options={"temperature": temperature}
+                keep_alive=getattr(self.config, "keep_alive", "3m"),
+                options=options
             )
             if isinstance(response, dict) and "message" in response:
                 return response["message"].get("content", "").strip()
@@ -121,6 +147,37 @@ class LLMClient:
         except Exception as e:
             print(f"[Error in chat_sync]: {e}")
             return ""
+
+    def unload_model(self, model_name: Optional[str] = None) -> Tuple[bool, str]:
+        """Explicitly unloads the model from memory (RAM/VRAM) immediately."""
+        target = model_name or self.active_model
+        try:
+            ollama.chat(model=target, messages=[], keep_alive=0)
+            return True, f"Model '{target}' successfully unloaded from memory."
+        except Exception as e:
+            return False, f"Failed to unload model: {e}"
+
+    def get_loaded_models(self) -> List[Dict[str, Any]]:
+        """Returns currently loaded models and their memory/VRAM footprint in Ollama."""
+        try:
+            res = ollama.ps()
+            loaded = []
+            models_list = res.get("models", []) if isinstance(res, dict) else getattr(res, "models", [])
+            for m in models_list:
+                name = m.get("model") if isinstance(m, dict) else getattr(m, "model", "")
+                size = m.get("size") if isinstance(m, dict) else getattr(m, "size", 0)
+                size_vram = m.get("size_vram") if isinstance(m, dict) else getattr(m, "size_vram", 0)
+                ctx_len = m.get("context_length") if isinstance(m, dict) else getattr(m, "context_length", 0)
+                loaded.append({
+                    "model": name,
+                    "size_bytes": size,
+                    "size_mb": round(size / (1024 * 1024), 1) if size else 0,
+                    "vram_mb": round(size_vram / (1024 * 1024), 1) if size_vram else 0,
+                    "context_length": ctx_len,
+                })
+            return loaded
+        except Exception as e:
+            return []
 
 
 # Singleton instance

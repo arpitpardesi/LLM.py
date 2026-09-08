@@ -316,6 +316,15 @@ class DatabaseManager:
             print(f"Error deleting memory: {e}")
             return False
 
+    def clear_all_memories(self) -> int:
+        """Removes all stored long-term memories."""
+        try:
+            res = self.memories_col.delete_many({})
+            return res.deleted_count
+        except Exception as e:
+            print(f"Error clearing all memories: {e}")
+            return 0
+
     # -------------------------------------------------------------
     # Session Tracking
     # -------------------------------------------------------------

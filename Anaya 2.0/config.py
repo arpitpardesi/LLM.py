@@ -77,6 +77,10 @@ class LLMConfig:
     stream_output: bool = True
     context_window_turns: int = 14  # Number of recent message turns to include in context
     max_facts_in_prompt: int = 6    # Maximum relevant user memories injected into prompt
+    num_ctx: int = 2048             # Context window limit for chat (caps KV cache RAM usage)
+    num_ctx_internal: int = 768     # Minimal context window for internal background tasks
+    keep_alive: str = "3m"          # Model idle timeout before freeing RAM/VRAM
+    num_threads: int = 6            # Performance core allocation for Apple Silicon
 
 
 @dataclass

@@ -49,9 +49,11 @@ class ProactiveEngine:
         )
 
         try:
+            from config import config
             raw_result = llm_client.chat_sync(
                 messages=[{"role": "user", "content": prompt}],
-                temperature=0.1
+                temperature=0.1,
+                num_ctx=getattr(config.llm, "num_ctx_internal", 768)
             )
             json_match = re.search(r"\{.*?\}", raw_result, re.DOTALL)
             if json_match:
