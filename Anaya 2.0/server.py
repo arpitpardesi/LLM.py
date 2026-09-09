@@ -103,7 +103,13 @@ class TTSRequest(BaseModel):
 
 class PersonaUpdateRequest(BaseModel):
     companion_name: Optional[str] = "Anaya"
+    companion_gender: Optional[str] = "Female"
+    companion_age: Optional[int] = 27
     user_name: Optional[str] = "Arpit"
+    user_full_name: Optional[str] = "Arpit Pardesi"
+    user_gender: Optional[str] = "Male"
+    user_age: Optional[int] = 28
+    user_timezone: Optional[str] = "Asia/Kolkata"
     relationship: Optional[str] = "Closest Friend"
     language_blend: Optional[str] = "Contemporary Indian English & subtle Hinglish"
     tone_vibe: Optional[str] = "Warm, intuitive, and playful"
@@ -134,6 +140,12 @@ class SuggestTraitsRequest(BaseModel):
 class RefineTraitRequest(BaseModel):
     trait: str
     description: str
+
+
+class DiaryDeleteRequest(BaseModel):
+    entry_id: Optional[str] = None
+    date_str: Optional[str] = None
+    all: bool = False
 
 
 class LLMConfigUpdateRequest(BaseModel):
@@ -477,6 +489,8 @@ async def get_diary(force: bool = False):
         return {
             "diary_entry": today_doc.get("content", ""),
             "date": today_doc.get("display_date", ""),
+            "date_str": today_doc.get("date_str", ""),
+            "id": str(today_doc.get("_id", "")) if today_doc.get("_id") else "",
             "title": today_doc.get("title", ""),
             "mood": today_doc.get("mood", ""),
             "is_cached": True
@@ -487,7 +501,7 @@ async def get_diary(force: bool = False):
     prompt = (
         f"Write a short, intimate personal diary entry as {config.user.companion_name} (27-28), "
         f"writing in her private journal about {config.user.user_name} (28) and their bond. "
-        "Reflect on how much she values having him in her life, recent moments, her quirks, "
+        "Reflect on how much she values having him in life, recent moments, her quirks, "
         "and how comfortable she feels around him.\n"
         f"Recent context:\n{recent_summary}\n\n"
         "Keep it heartfelt, poetic yet grounded, 1-2 paragraphs max."
@@ -505,6 +519,8 @@ async def get_diary(force: bool = False):
     return {
         "diary_entry": entry,
         "date": saved.get("display_date", ""),
+        "date_str": saved.get("date_str", ""),
+        "id": str(saved.get("_id", "")) if saved.get("_id") else "",
         "title": saved.get("title", ""),
         "mood": mood_name,
         "is_cached": False
@@ -514,8 +530,40 @@ async def get_diary(force: bool = False):
 @app.get("/api/diary/history")
 async def get_diary_history():
     """Retrieves chronological diary history entries."""
-    entries = db_manager.get_diary_entries(limit=15)
+    entries = db_manager.get_diary_entries(limit=50)
     return {"entries": entries}
+
+
+@app.delete("/api/diary/{entry_id}")
+async def delete_diary_entry(entry_id: str):
+    """Deletes a specific personal diary reflection by ID or date_str."""
+    ok = db_manager.delete_diary_entry(entry_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Diary entry not found or could not be deleted")
+    return {"success": True, "message": "Diary entry deleted successfully"}
+
+
+@app.delete("/api/diary")
+async def clear_all_diary():
+    """Wipes all personal diary reflections."""
+    count = db_manager.clear_all_diary_entries()
+    return {"success": True, "deleted_count": count, "message": f"Cleared {count} diary entries"}
+
+
+@app.post("/api/diary/delete")
+async def delete_diary_post(payload: DiaryDeleteRequest):
+    """POST-compatible endpoint to delete single or all diary entries."""
+    if payload.all:
+        count = db_manager.clear_all_diary_entries()
+        return {"success": True, "deleted_count": count, "message": f"Cleared {count} diary entries"}
+
+    target = payload.entry_id or payload.date_str
+    if not target:
+        raise HTTPException(status_code=400, detail="Must specify entry_id or date_str")
+    ok = db_manager.delete_diary_entry(target)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Diary entry not found or could not be deleted")
+    return {"success": True, "message": "Diary entry deleted successfully"}
 
 
 @app.post("/api/mood")
@@ -588,7 +636,13 @@ async def get_persona_config():
     meta = seed_doc.get("metadata", {}) if seed_doc else {}
 
     companion_name = meta.get("companion_name", persona_engine.companion_name)
+    companion_gender = meta.get("companion_gender", getattr(persona_engine, "companion_gender", "Female"))
+    companion_age = int(meta.get("companion_age", getattr(config.user, "companion_age", 27)))
     user_name = meta.get("user_name", persona_engine.user_name)
+    user_full_name = meta.get("user_full_name", getattr(config.user, "user_full_name", "Arpit Pardesi"))
+    user_gender = meta.get("user_gender", getattr(persona_engine, "user_gender", "Male"))
+    user_age = int(meta.get("user_age", getattr(config.user, "user_age", 28)))
+    user_timezone = meta.get("user_timezone", getattr(config.user, "user_timezone", "Asia/Kolkata"))
     relationship = meta.get("relationship", persona_engine.relationship)
     language_blend = meta.get("language_blend", persona_engine.language_blend)
     tone_vibe = meta.get("tone_vibe", persona_engine.tone_vibe)
@@ -599,7 +653,13 @@ async def get_persona_config():
 
     return {
         "companion_name": companion_name,
+        "companion_gender": companion_gender,
+        "companion_age": companion_age,
         "user_name": user_name,
+        "user_full_name": user_full_name,
+        "user_gender": user_gender,
+        "user_age": user_age,
+        "user_timezone": user_timezone,
         "relationship": relationship,
         "language_blend": language_blend,
         "tone_vibe": tone_vibe,
@@ -614,7 +674,13 @@ async def update_persona_config(payload: PersonaUpdateRequest):
     ok = persona_engine.update_personality(
         new_content=payload.personality_text,
         companion_name=payload.companion_name,
+        companion_gender=payload.companion_gender,
+        companion_age=payload.companion_age,
         user_name=payload.user_name,
+        user_full_name=payload.user_full_name,
+        user_gender=payload.user_gender,
+        user_age=payload.user_age,
+        user_timezone=payload.user_timezone,
         relationship=payload.relationship,
         language_blend=payload.language_blend,
         tone_vibe=payload.tone_vibe
@@ -625,9 +691,15 @@ async def update_persona_config(payload: PersonaUpdateRequest):
     return {
         "success": True,
         "companion_name": persona_engine.companion_name,
+        "companion_gender": persona_engine.companion_gender,
+        "companion_age": getattr(persona_engine, "companion_age", 27),
         "user_name": persona_engine.user_name,
+        "user_full_name": getattr(persona_engine, "user_full_name", "Arpit Pardesi"),
+        "user_gender": persona_engine.user_gender,
+        "user_age": getattr(persona_engine, "user_age", 28),
+        "user_timezone": getattr(persona_engine, "user_timezone", "Asia/Kolkata"),
         "relationship": persona_engine.relationship,
-        "message": "Companion personality successfully saved and reloaded!"
+        "message": "Companion personality successfully saved, synced with DB and profile.json!"
     }
 
 

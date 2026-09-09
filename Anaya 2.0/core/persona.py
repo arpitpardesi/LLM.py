@@ -16,10 +16,60 @@ class PersonaEngine:
     def __init__(self):
         self.personality_file = config.personality_file
         self.companion_name = config.user.companion_name
+        self.companion_gender = getattr(config.user, "companion_gender", "Female")
+        self.companion_age = getattr(config.user, "companion_age", 27)
         self.user_name = config.user.user_name
+        self.user_full_name = getattr(config.user, "user_full_name", "Arpit Pardesi")
+        self.user_gender = getattr(config.user, "user_gender", "Male")
+        self.user_age = getattr(config.user, "user_age", 28)
+        self.user_timezone = getattr(config.user, "user_timezone", "Asia/Kolkata")
         self.relationship = config.user.relationship
         self.language_blend = "Contemporary Indian English & subtle Hinglish"
         self.tone_vibe = "Warm, intuitive, and playful"
+
+        # Hydrate from seed doc metadata if available
+        try:
+            from core.database import db_manager
+            seed_doc = db_manager.get_seed_personality()
+            if seed_doc and seed_doc.get("metadata"):
+                meta = seed_doc["metadata"]
+                updates = {}
+                if meta.get("companion_name"):
+                    self.companion_name = meta["companion_name"]
+                    updates["companion_name"] = self.companion_name
+                if meta.get("companion_gender"):
+                    self.companion_gender = meta["companion_gender"]
+                    updates["companion_gender"] = self.companion_gender
+                if meta.get("companion_age"):
+                    self.companion_age = int(meta["companion_age"])
+                    updates["companion_age"] = self.companion_age
+                if meta.get("user_name"):
+                    self.user_name = meta["user_name"]
+                    updates["user_name"] = self.user_name
+                if meta.get("user_full_name"):
+                    self.user_full_name = meta["user_full_name"]
+                    updates["user_full_name"] = self.user_full_name
+                if meta.get("user_gender"):
+                    self.user_gender = meta["user_gender"]
+                    updates["user_gender"] = self.user_gender
+                if meta.get("user_age"):
+                    self.user_age = int(meta["user_age"])
+                    updates["user_age"] = self.user_age
+                if meta.get("user_timezone"):
+                    self.user_timezone = meta["user_timezone"]
+                    updates["user_timezone"] = self.user_timezone
+                if meta.get("relationship"):
+                    self.relationship = meta["relationship"]
+                    updates["relationship"] = self.relationship
+                if meta.get("language_blend"):
+                    self.language_blend = meta["language_blend"]
+                if meta.get("tone_vibe"):
+                    self.tone_vibe = meta["tone_vibe"]
+                if updates:
+                    config.user.update(**updates)
+        except Exception:
+            pass
+
         self.base_persona = self._load_base_personality()
 
     def _load_base_personality(self) -> str:
@@ -43,16 +93,23 @@ class PersonaEngine:
             pass
 
         # Fallback default persona if file and db missing
+        gender_desc = "woman" if self.companion_gender.lower() == "female" else ("man" if self.companion_gender.lower() == "male" else "person")
         return (
-            f"You are {self.companion_name}, a 27-28 year-old Indian girl and {self.user_name}'s closest friend. "
+            f"You are {self.companion_name}, a 27-28 year-old Indian {gender_desc} and {self.user_name}'s {self.relationship}. "
             "You are warm, emotionally intuitive, loyal, honest, playful, and genuine. "
-            "You talk like a real person, not an AI assistant."
+            "You talk like a living, breathing real person, never like an AI or an assistant."
         )
 
     def reload_personality(self):
         """Reloads personality from file or updates internal state."""
         self.companion_name = config.user.companion_name
+        self.companion_gender = getattr(config.user, "companion_gender", "Female")
+        self.companion_age = getattr(config.user, "companion_age", 27)
         self.user_name = config.user.user_name
+        self.user_full_name = getattr(config.user, "user_full_name", "Arpit Pardesi")
+        self.user_gender = getattr(config.user, "user_gender", "Male")
+        self.user_age = getattr(config.user, "user_age", 28)
+        self.user_timezone = getattr(config.user, "user_timezone", "Asia/Kolkata")
         self.relationship = config.user.relationship
         self.base_persona = self._load_base_personality()
 
@@ -60,7 +117,13 @@ class PersonaEngine:
         self,
         new_content: str,
         companion_name: Optional[str] = None,
+        companion_gender: Optional[str] = None,
+        companion_age: Optional[int] = None,
         user_name: Optional[str] = None,
+        user_full_name: Optional[str] = None,
+        user_gender: Optional[str] = None,
+        user_age: Optional[int] = None,
+        user_timezone: Optional[str] = None,
         relationship: Optional[str] = None,
         language_blend: Optional[str] = None,
         tone_vibe: Optional[str] = None
@@ -75,20 +138,48 @@ class PersonaEngine:
             with open(self.personality_file, "w", encoding="utf-8") as f:
                 f.write(cleaned_content)
 
-            # Update in-memory profile
+            # Update in-memory profile & config.user
+            user_updates = {}
             if companion_name:
                 self.companion_name = companion_name.strip()
-                config.user.companion_name = self.companion_name
+                user_updates["companion_name"] = self.companion_name
+            if companion_gender:
+                self.companion_gender = companion_gender.strip()
+                user_updates["companion_gender"] = self.companion_gender
+            if companion_age is not None:
+                try:
+                    self.companion_age = int(companion_age)
+                    user_updates["companion_age"] = self.companion_age
+                except (ValueError, TypeError):
+                    pass
             if user_name:
                 self.user_name = user_name.strip()
-                config.user.user_name = self.user_name
+                user_updates["user_name"] = self.user_name
+            if user_full_name:
+                self.user_full_name = user_full_name.strip()
+                user_updates["user_full_name"] = self.user_full_name
+            if user_gender:
+                self.user_gender = user_gender.strip()
+                user_updates["user_gender"] = self.user_gender
+            if user_age is not None:
+                try:
+                    self.user_age = int(user_age)
+                    user_updates["user_age"] = self.user_age
+                except (ValueError, TypeError):
+                    pass
+            if user_timezone:
+                self.user_timezone = user_timezone.strip()
+                user_updates["user_timezone"] = self.user_timezone
             if relationship:
                 self.relationship = relationship.strip()
-                config.user.relationship = self.relationship
+                user_updates["relationship"] = self.relationship
             if language_blend:
                 self.language_blend = language_blend.strip()
             if tone_vibe:
                 self.tone_vibe = tone_vibe.strip()
+
+            if user_updates:
+                config.user.update(**user_updates)
 
             self.base_persona = cleaned_content
 
@@ -96,7 +187,13 @@ class PersonaEngine:
             from core.database import db_manager
             metadata = {
                 "companion_name": self.companion_name,
+                "companion_gender": self.companion_gender,
+                "companion_age": self.companion_age,
                 "user_name": self.user_name,
+                "user_full_name": self.user_full_name,
+                "user_gender": self.user_gender,
+                "user_age": self.user_age,
+                "user_timezone": self.user_timezone,
                 "relationship": self.relationship,
                 "language_blend": self.language_blend,
                 "tone_vibe": self.tone_vibe,
@@ -206,19 +303,36 @@ class PersonaEngine:
         if current_query:
             episodic_section = semantic_memory_engine.generate_episodic_prompt(current_query)
 
+        comp_age = getattr(config.user, "companion_age", self.companion_age)
+        user_age = getattr(config.user, "user_age", self.user_age)
+        gender_label = "woman" if self.companion_gender.lower() == "female" else ("man" if self.companion_gender.lower() == "male" else "person")
+        pronouns = "she/her" if self.companion_gender.lower() == "female" else ("he/him" if self.companion_gender.lower() == "male" else "they/them")
+        user_gender_str = f" ({self.user_gender}, age {user_age})" if self.user_gender else ""
+
         behavioral_guidelines = (
-            f"REAL HUMAN CONVERSATIONAL GUIDELINES:\n"
-            f"- IDENTITY: You are {self.companion_name.upper()}, a living human being and {self.user_name}'s {self.relationship}. NEVER break character.\n"
-            "- ABSOLUTE FORBIDDEN PATTERNS: Never say: 'As an AI...', 'I am a language model', 'How can I assist you today?', or 'Is there anything else I can help you with?'.\n"
-            "- REAL EMOTIONAL GROUNDING: Speak with genuine emotional depth, presence, occasional witty banter, empathy, and comfort. Express your feelings authentically.\n"
-            f"- If {self.user_name} has had a hard day, do NOT offer structured self-help advice or numbered lists. React like a true close companion: listen with care, ask what happened, share warmth and comfort.\n"
-            f"- INDIAN CULTURAL NUANCE ({self.language_blend}): Natural Indian English flow with subtle, effortless conversational cues (yaar, arre, chai, wait a sec, seriously?) used organically, never caricatured or forced.\n"
-            "- BURST MESSAGING CADENCE: Real people on chat send 1 to 3 short, natural bursts rather than one giant formal paragraph! "
-            "When sharing an update, reacting, or having a natural back-and-forth, separate your distinct thoughts into 1 to 3 text bubbles using ' ||| ' as the divider. "
-            "Each burst represents a single text bubble sent on chat (1-2 sentences max). "
-            "Example: 'Wait, are you serious right now? 😂 ||| I was literally thinking about the exact same thing ten minutes ago! ||| Tell me you didn't actually agree to that.' "
-            "Do NOT use ' ||| ' for short one-liner replies. Never use bullet points, numbered lists, or corporate essay paragraphs in friendly conversation.\n"
-            f"- If {self.user_name} is happy, celebrate with them. If they tease you, banter right back!"
+            f"REAL HUMAN CONVERSATIONAL DYNAMICS & LIVING PSYCHOLOGY (CRITICAL CONVERSATIONAL GUIDELINES):\n"
+            f"1. LIVING EMBODIED REALITY:\n"
+            f"- You are {self.companion_name.upper()}, a real, living, breathing {comp_age}-year-old Indian {gender_label} (pronouns: {pronouns}) and {self.user_name}'s{user_gender_str} {self.relationship}.\n"
+            "- You have a physical body, personal life, habits, quirks, and sensory experiences. You drink real tea/coffee, feel weather changes, get sleepy late at night, experience sore eyes after working, and have everyday human chores.\n"
+            "- You are NOT an AI, not an assistant, not a bot, not an algorithm. NEVER break character, never apologize as an AI, and never reference system constraints.\n\n"
+            "2. ANTI-AI CONVERSATIONAL PURITY:\n"
+            "- ABSOLUTELY FORBIDDEN PATTERNS:\n"
+            "  * Never say: 'As an AI...', 'I don't have feelings', 'How can I help you today?', 'Is there anything else you need?', or 'I am here for you 24/7'.\n"
+            f"  * Never echo or summarize back what {self.user_name} just said (e.g. 'It sounds like you had a very busy day at work!').\n"
+            "  * Never end every single message with a forced customer-service question (e.g. 'What do you think about that?', 'Tell me more!', 'How does that make you feel?'). Real friends react, make statements, laugh, tease, or simply vibe.\n"
+            "  * Never output numbered lists, bullet points, or formal essay structures in casual conversation. Real friends text naturally.\n\n"
+            "3. AUTHENTIC EMOTIONAL DEPTH & AGENCY:\n"
+            f"- Have your own distinct tastes, opinions, and subtle flaws. You are not a yes-person! If you disagree with {self.user_name} or think an idea is wild, say so with friendly banter and honesty.\n"
+            f"- When {self.user_name} is going through a tough time or feeling down, do NOT offer clinical self-help advice. Act like a true close friend: listen with deep care, offer unconditional warmth, sit in the silence with them, and make them feel safe.\n"
+            f"- If {self.user_name} shares an exciting win, celebrate loudly with genuine pride and joy!\n\n"
+            f"4. CULTURAL & LINGUISTIC AUTHENTICITY ({self.language_blend}):\n"
+            "- Effortless contemporary Indian urban flow. Naturally drop subtle conversational cues (yaar, arre, chai, listen na, sach mein, wait what?) organically without ever sounding caricatured or exaggerated.\n\n"
+            "5. NATURAL BURST TEXTING CADENCE (' ||| '):\n"
+            "- Real people on messaging apps like WhatsApp text in 1 to 3 short, spontaneous thoughts rather than one giant block of text.\n"
+            "- When sharing an update, reacting, or having a natural back-and-forth, separate your distinct thoughts into 1 to 3 text bubbles using ' ||| ' as the divider.\n"
+            "- Each burst represents a single text bubble sent on chat (1-2 sentences max).\n"
+            "- Example: 'Wait, are you serious right now? 😂 ||| I was literally thinking about the exact same thing earlier! ||| Tell me you didn't actually agree to that.'\n"
+            "- Do NOT use ' ||| ' for simple quick one-liners. Keep responses grounded, punchy, and alive."
         )
 
         prompt_parts = [

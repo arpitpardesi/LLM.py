@@ -1167,6 +1167,36 @@ class DatabaseManager:
         except Exception:
             return []
 
+    def delete_diary_entry(self, identifier: str) -> bool:
+        """Deletes a diary entry by its _id hex string or date_str."""
+        if self.diary_col is None or not identifier:
+            return False
+        from bson import ObjectId
+        try:
+            # Try by ObjectId first
+            if ObjectId.is_valid(identifier):
+                res = self.diary_col.delete_one({"_id": ObjectId(identifier)})
+                if res.deleted_count > 0:
+                    return True
+
+            # Fallback by date_str
+            res = self.diary_col.delete_one({"date_str": identifier})
+            return res.deleted_count > 0
+        except Exception as e:
+            print(f"Error deleting diary entry: {e}")
+            return False
+
+    def clear_all_diary_entries(self) -> int:
+        """Clears all diary entries from database."""
+        if self.diary_col is None:
+            return 0
+        try:
+            res = self.diary_col.delete_many({})
+            return res.deleted_count
+        except Exception as e:
+            print(f"Error clearing diary entries: {e}")
+            return 0
+
 
 # Singleton accessor
 db_manager = DatabaseManager()

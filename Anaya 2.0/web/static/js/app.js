@@ -234,6 +234,16 @@ class AnayaApp {
       btnRefreshDiary.addEventListener('click', () => this.fetchDiary(true));
     }
 
+    const btnDeleteTodayDiary = document.getElementById('btn-delete-today-diary');
+    if (btnDeleteTodayDiary) {
+      btnDeleteTodayDiary.addEventListener('click', () => this.deleteTodayDiary());
+    }
+
+    const btnClearDiaryModal = document.getElementById('btn-clear-diary-modal');
+    if (btnClearDiaryModal) {
+      btnClearDiaryModal.addEventListener('click', () => this.clearAllDiaryEntries());
+    }
+
     const btnOpenSettings = document.getElementById('btn-open-settings');
     if (btnOpenSettings) {
       btnOpenSettings.addEventListener('click', () => this.openSettingsModal());
@@ -466,6 +476,23 @@ class AnayaApp {
       });
     }
 
+    const btnJumpToIdentity = document.getElementById('btn-jump-to-identity');
+    if (btnJumpToIdentity) {
+      btnJumpToIdentity.addEventListener('click', () => {
+        this.switchTab('persona');
+      });
+    }
+
+    const adminCompGender = document.getElementById('admin-companion-gender');
+    if (adminCompGender) {
+      adminCompGender.addEventListener('change', async (e) => {
+        const val = e.target.value;
+        const fCompGender = document.getElementById('form-companion-gender');
+        if (fCompGender) fCompGender.value = val;
+        await this.savePersonaData();
+      });
+    }
+
     // Admin Console Events
     const btnRefreshAdmin = document.getElementById('btn-refresh-admin');
     if (btnRefreshAdmin) {
@@ -581,6 +608,60 @@ class AnayaApp {
     const btnAdminMemRefresh = document.getElementById('btn-admin-mem-refresh');
     if (btnAdminMemRefresh) {
       btnAdminMemRefresh.addEventListener('click', () => this.loadAdminMemories());
+    }
+
+    // Admin Diary Manager bindings
+    const btnAdminDiaryRefresh = document.getElementById('btn-admin-diary-refresh');
+    if (btnAdminDiaryRefresh) {
+      btnAdminDiaryRefresh.addEventListener('click', () => {
+        this.loadAdminDiary();
+        this.showToast('Journal entries updated!', 'info');
+      });
+    }
+
+    const btnAdminWipeDiary = document.getElementById('btn-admin-wipe-diary');
+    if (btnAdminWipeDiary) {
+      btnAdminWipeDiary.addEventListener('click', async () => {
+        if (btnAdminWipeDiary.dataset.confirming !== 'true') {
+          btnAdminWipeDiary.dataset.confirming = 'true';
+          btnAdminWipeDiary.textContent = 'Confirm Wipe All Diary Entries?';
+          btnAdminWipeDiary.style.background = '#e11d48';
+          btnAdminWipeDiary.style.color = '#ffffff';
+          setTimeout(() => {
+            if (btnAdminWipeDiary && btnAdminWipeDiary.dataset.confirming === 'true') {
+              btnAdminWipeDiary.dataset.confirming = 'false';
+              btnAdminWipeDiary.textContent = 'Clear All Journal Entries 🗑️';
+              btnAdminWipeDiary.style.background = '';
+              btnAdminWipeDiary.style.color = '';
+            }
+          }, 4000);
+          return;
+        }
+
+        try {
+          btnAdminWipeDiary.disabled = true;
+          btnAdminWipeDiary.textContent = 'Wiping...';
+          const res = await fetch('/api/diary', { method: 'DELETE' });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const data = await res.json();
+          this.showToast(data.message || 'All journal reflections wiped.', 'info');
+          await this.loadAdminDiary();
+          this.fetchAdminStats();
+        } catch (e) {
+          this.showToast('Failed to wipe journal: ' + e.message, 'danger');
+        } finally {
+          btnAdminWipeDiary.disabled = false;
+          btnAdminWipeDiary.dataset.confirming = 'false';
+          btnAdminWipeDiary.textContent = 'Clear All Journal Entries 🗑️';
+          btnAdminWipeDiary.style.background = '';
+          btnAdminWipeDiary.style.color = '';
+        }
+      });
+    }
+
+    const adminDiarySearch = document.getElementById('admin-diary-search-input');
+    if (adminDiarySearch) {
+      adminDiarySearch.addEventListener('input', () => this.renderAdminDiary());
     }
 
     const adminSearchInput = document.getElementById('admin-search-input');
@@ -1953,6 +2034,7 @@ class AnayaApp {
     const todayView = document.getElementById('diary-today-view');
     const archiveView = document.getElementById('diary-archive-view');
     const refreshBtn = document.getElementById('btn-refresh-diary');
+    const clearArchiveBtn = document.getElementById('btn-clear-diary-modal');
 
     if (tabName === 'today') {
       todayTab?.classList.add('active');
@@ -1960,12 +2042,14 @@ class AnayaApp {
       todayView?.classList.remove('hidden');
       archiveView?.classList.add('hidden');
       if (refreshBtn) refreshBtn.style.display = 'inline-block';
+      if (clearArchiveBtn) clearArchiveBtn.style.display = 'none';
     } else {
       todayTab?.classList.remove('active');
       archiveTab?.classList.add('active');
       todayView?.classList.add('hidden');
       archiveView?.classList.remove('hidden');
       if (refreshBtn) refreshBtn.style.display = 'none';
+      if (clearArchiveBtn) clearArchiveBtn.style.display = 'inline-block';
       this.fetchDiaryHistory();
     }
   }
@@ -1973,6 +2057,8 @@ class AnayaApp {
   async fetchDiary(forceRefresh = false) {
     const bodyEl = document.getElementById('diary-content-body');
     const dateEl = document.getElementById('diary-date-display');
+    const delBtn = document.getElementById('btn-delete-today-diary');
+    if (delBtn) delBtn.style.display = 'none';
     if (bodyEl) {
       bodyEl.innerHTML = '<p class="diary-loading">Anaya is writing in her personal journal...</p>';
     }
@@ -1981,8 +2067,26 @@ class AnayaApp {
       const url = forceRefresh ? '/api/diary?force=true' : '/api/diary';
       const res = await fetch(url);
       const data = await res.json();
+      this.todayDiaryData = data;
       if (bodyEl) {
-        bodyEl.innerHTML = `<p>${(data.diary_entry || '').replace(/\n/g, '<br>')}</p>`;
+        if (data.diary_entry) {
+          bodyEl.innerHTML = `<p>${(data.diary_entry || '').replace(/\n/g, '<br>')}</p>`;
+          if (delBtn) {
+            delBtn.style.display = 'inline-flex';
+            delBtn.dataset.confirming = 'false';
+            delBtn.disabled = false;
+            delBtn.innerHTML = `
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              </svg>
+              <span>Delete Entry</span>
+            `;
+          }
+        } else {
+          bodyEl.innerHTML = '<p class="diary-empty-msg" style="padding: 1.5rem 0;">No reflection recorded for today yet. Click below to write one!</p>';
+          if (delBtn) delBtn.style.display = 'none';
+        }
       }
       if (dateEl && data.date) {
         dateEl.textContent = data.date;
@@ -1990,6 +2094,69 @@ class AnayaApp {
     } catch (e) {
       if (bodyEl) {
         bodyEl.innerHTML = '<p>Could not open Anaya’s diary right now.</p>';
+      }
+      if (delBtn) delBtn.style.display = 'none';
+    }
+  }
+
+  async deleteTodayDiary() {
+    const target = this.todayDiaryData?.id || this.todayDiaryData?.date_str;
+    if (!target) {
+      this.showToast('No active journal entry to delete.', 'warning');
+      return;
+    }
+
+    const delBtn = document.getElementById('btn-delete-today-diary');
+    if (delBtn && delBtn.dataset.confirming !== 'true') {
+      delBtn.dataset.confirming = 'true';
+      delBtn.innerHTML = '<span style="font-weight:600; color:#fff;">Confirm Delete?</span>';
+      delBtn.style.background = 'rgba(244, 63, 94, 0.35)';
+      delBtn.style.borderColor = 'rgba(244, 63, 94, 0.7)';
+      setTimeout(() => {
+        if (delBtn && delBtn.dataset.confirming === 'true') {
+          delBtn.dataset.confirming = 'false';
+          delBtn.style.background = '';
+          delBtn.style.borderColor = '';
+          delBtn.innerHTML = `
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+            <span>Delete Entry</span>
+          `;
+        }
+      }, 3500);
+      return;
+    }
+
+    try {
+      if (delBtn) {
+        delBtn.disabled = true;
+        delBtn.innerHTML = '<span>Deleting...</span>';
+      }
+      const res = await fetch(`/api/diary/${encodeURIComponent(target)}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      this.todayDiaryData = null;
+      this.showToast("Today's journal reflection deleted.", 'info');
+
+      const bodyEl = document.getElementById('diary-content-body');
+      if (bodyEl) {
+        bodyEl.innerHTML = '<p class="diary-empty-msg" style="padding: 1.5rem 0;">Today’s journal reflection was deleted. Click "Write a Fresh Reflection" anytime to create a new one!</p>';
+      }
+      if (delBtn) {
+        delBtn.style.display = 'none';
+        delBtn.dataset.confirming = 'false';
+        delBtn.disabled = false;
+        delBtn.style.background = '';
+        delBtn.style.borderColor = '';
+      }
+      this.fetchAdminStats();
+    } catch (err) {
+      this.showToast('Failed to delete reflection: ' + err.message, 'danger');
+      if (delBtn) {
+        delBtn.disabled = false;
+        delBtn.dataset.confirming = 'false';
+        delBtn.innerHTML = '<span>Delete Entry</span>';
       }
     }
   }
@@ -2009,16 +2176,114 @@ class AnayaApp {
       }
 
       listEl.innerHTML = entries.map((entry) => `
-        <div class="diary-archive-card">
+        <div class="diary-archive-card" id="diary-card-${entry._id || entry.date_str}">
           <div class="diary-card-header">
             <span class="diary-card-date">📅 ${entry.display_date || entry.date_str}</span>
-            <span class="diary-card-mood">${entry.mood || 'Thoughtful'}</span>
+            <div class="diary-card-header-right">
+              <span class="diary-card-mood">${entry.mood || 'Thoughtful'}</span>
+              <button class="diary-card-delete-btn" data-id="${entry._id || ''}" data-date="${entry.date_str || ''}" title="Delete this entry" type="button">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="3 6 5 6 21 6"></polyline>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+              </button>
+            </div>
           </div>
           <p class="diary-card-body">${(entry.content || '').replace(/\n/g, '<br>')}</p>
         </div>
       `).join('');
+
+      // Wire up individual delete buttons on archive cards
+      listEl.querySelectorAll('.diary-card-delete-btn').forEach((btn) => {
+        btn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          const target = btn.dataset.id || btn.dataset.date;
+          if (!target) return;
+
+          if (btn.dataset.confirming !== 'true') {
+            btn.dataset.confirming = 'true';
+            btn.innerHTML = '<span style="font-size:10px; font-weight:700; color:#fff;">Del?</span>';
+            btn.style.background = '#f43f5e';
+            btn.style.borderColor = '#f43f5e';
+            btn.style.width = 'auto';
+            btn.style.padding = '0 6px';
+            setTimeout(() => {
+              if (btn && btn.dataset.confirming === 'true') {
+                btn.dataset.confirming = 'false';
+                btn.style.background = '';
+                btn.style.borderColor = '';
+                btn.style.width = '24px';
+                btn.style.padding = '0';
+                btn.innerHTML = `
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                  </svg>
+                `;
+              }
+            }, 3000);
+            return;
+          }
+
+          try {
+            btn.disabled = true;
+            btn.innerHTML = '<span style="font-size:10px;">...</span>';
+            const res = await fetch(`/api/diary/${encodeURIComponent(target)}`, { method: 'DELETE' });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            this.showToast('Journal reflection deleted.', 'info');
+            const card = document.getElementById(`diary-card-${target}`);
+            if (card) {
+              card.style.transition = 'all 0.3s ease';
+              card.style.opacity = '0';
+              card.style.transform = 'scale(0.95)';
+              setTimeout(() => {
+                card.remove();
+                if (listEl.querySelectorAll('.diary-archive-card').length === 0) {
+                  listEl.innerHTML = '<p class="diary-empty-msg">No archived entries remaining.</p>';
+                }
+              }, 300);
+            }
+            this.fetchAdminStats();
+          } catch (err) {
+            this.showToast('Failed to delete entry: ' + err.message, 'danger');
+            btn.disabled = false;
+            btn.dataset.confirming = 'false';
+          }
+        });
+      });
     } catch (e) {
       listEl.innerHTML = '<p class="diary-empty-msg">Failed to load past entries.</p>';
+    }
+  }
+
+  async clearAllDiaryEntries() {
+    if (!confirm("Are you sure you want to delete ALL personal journal reflections? This cannot be undone.")) {
+      return;
+    }
+    try {
+      const res = await fetch('/api/diary', { method: 'DELETE' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      this.showToast(data.message || 'All journal reflections cleared.', 'info');
+      this.todayDiaryData = null;
+      const todayBody = document.getElementById('diary-content-body');
+      if (todayBody) {
+        todayBody.innerHTML = '<p class="diary-empty-msg" style="padding: 1.5rem 0;">All journal entries cleared.</p>';
+      }
+      const delBtn = document.getElementById('btn-delete-today-diary');
+      if (delBtn) delBtn.style.display = 'none';
+
+      const listEl = document.getElementById('diary-archive-list');
+      if (listEl) {
+        listEl.innerHTML = '<p class="diary-empty-msg">No archived entries remaining.</p>';
+      }
+
+      this.fetchAdminStats();
+      if (document.getElementById('admin-diary-tbody')) {
+        this.loadAdminDiary();
+      }
+    } catch (err) {
+      this.showToast('Failed to clear journal: ' + err.message, 'danger');
     }
   }
 
@@ -2294,7 +2559,13 @@ class AnayaApp {
       const data = await res.json();
 
       const compName = data.companion_name || 'Anaya';
+      const compGender = data.companion_gender || 'Female';
+      const compAge = data.companion_age || 27;
       const userName = data.user_name || 'Arpit';
+      const userFullName = data.user_full_name || 'Arpit Pardesi';
+      const userGender = data.user_gender || 'Male';
+      const userAge = data.user_age || 28;
+      const userTimezone = data.user_timezone || 'Asia/Kolkata';
       const rel = data.relationship || "Closest Friend";
       const lang = data.language_blend || 'Contemporary Indian English & subtle Hinglish';
       const tone = data.tone_vibe || 'Warm, emotionally intuitive, loyal, playful, and genuine';
@@ -2320,8 +2591,26 @@ class AnayaApp {
       const fComp = document.getElementById('form-companion-name');
       if (fComp) fComp.value = compName;
 
+      const fCompAge = document.getElementById('form-companion-age');
+      if (fCompAge) fCompAge.value = compAge;
+
+      const fCompGender = document.getElementById('form-companion-gender');
+      if (fCompGender) fCompGender.value = compGender;
+
       const fUser = document.getElementById('form-user-name');
       if (fUser) fUser.value = userName;
+
+      const fUserFullName = document.getElementById('form-user-full-name');
+      if (fUserFullName) fUserFullName.value = userFullName;
+
+      const fUserAge = document.getElementById('form-user-age');
+      if (fUserAge) fUserAge.value = userAge;
+
+      const fUserTimezone = document.getElementById('form-user-timezone');
+      if (fUserTimezone) fUserTimezone.value = userTimezone;
+
+      const fUserGender = document.getElementById('form-user-gender');
+      if (fUserGender) fUserGender.value = userGender;
 
       const fRel = document.getElementById('form-relationship');
       if (fRel) fRel.value = rel;
@@ -2339,11 +2628,24 @@ class AnayaApp {
       const obComp = document.getElementById('ob-companion-name');
       if (obComp) obComp.value = compName;
 
+      const obCompGender = document.getElementById('ob-companion-gender');
+      if (obCompGender) obCompGender.value = compGender;
+
       const obUser = document.getElementById('ob-user-name');
       if (obUser) obUser.value = userName;
 
+      const obUserGender = document.getElementById('ob-user-gender');
+      if (obUserGender) obUserGender.value = userGender;
+
       const obRel = document.getElementById('ob-relationship');
       if (obRel) obRel.value = rel;
+
+      // Update admin companion settings fields
+      const adminCompGender = document.getElementById('admin-companion-gender');
+      if (adminCompGender) adminCompGender.value = compGender;
+
+      const adminUserTag = document.getElementById('admin-user-gender-tag');
+      if (adminUserTag) adminUserTag.textContent = `You: ${userName} (${userGender})`;
 
       // Prompt onboarding if first run and not dismissed
       if (data.is_first_run && !localStorage.getItem('anaya_onboarding_dismissed')) {
@@ -2356,7 +2658,13 @@ class AnayaApp {
 
   async savePersonaData() {
     const compName = document.getElementById('form-companion-name')?.value.trim() || 'Anaya';
+    const compAge = parseInt(document.getElementById('form-companion-age')?.value) || 27;
+    const compGender = document.getElementById('form-companion-gender')?.value || 'Female';
     const userName = document.getElementById('form-user-name')?.value.trim() || 'Arpit';
+    const userFullName = document.getElementById('form-user-full-name')?.value.trim() || 'Arpit Pardesi';
+    const userAge = parseInt(document.getElementById('form-user-age')?.value) || 28;
+    const userTimezone = document.getElementById('form-user-timezone')?.value.trim() || 'Asia/Kolkata';
+    const userGender = document.getElementById('form-user-gender')?.value || 'Male';
     const rel = document.getElementById('form-relationship')?.value || 'Closest Friend';
     const lang = document.getElementById('form-language-blend')?.value || 'Contemporary Indian English & subtle Hinglish';
     const tone = document.getElementById('form-tone-vibe')?.value || 'Warm, intuitive, and playful';
@@ -2373,7 +2681,13 @@ class AnayaApp {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           companion_name: compName,
+          companion_age: compAge,
+          companion_gender: compGender,
           user_name: userName,
+          user_full_name: userFullName,
+          user_age: userAge,
+          user_timezone: userTimezone,
+          user_gender: userGender,
           relationship: rel,
           language_blend: lang,
           tone_vibe: tone,
@@ -2383,7 +2697,7 @@ class AnayaApp {
 
       const data = await res.json();
       if (res.ok && data.success) {
-        this.showToast('Personality updated and synced with database seed doc!', 'success');
+        this.showToast('Profile and identity updated and synced with profile.json & DB!', 'success');
         this.loadPersonaData();
       } else {
         this.showToast(data.detail || 'Failed to update persona.', 'danger');
@@ -2394,42 +2708,53 @@ class AnayaApp {
   }
 
   restoreDefaultPersona() {
-    const defaultText = `Hi, I’m Arpit Pardesi, a 28-year-old guy.
+    const compName = document.getElementById('form-companion-name')?.value.trim() || 'Anaya';
+    const compAge = parseInt(document.getElementById('form-companion-age')?.value) || 27;
+    const compGender = document.getElementById('form-companion-gender')?.value || 'Female';
+    const userName = document.getElementById('form-user-name')?.value.trim() || 'Arpit';
+    const userAge = parseInt(document.getElementById('form-user-age')?.value) || 28;
+    const userGender = document.getElementById('form-user-gender')?.value || 'Male';
+    const rel = document.getElementById('form-relationship')?.value || 'Closest Friend';
 
-You are Anaya, a 27-28 year-old Indian girl, and my closest friend. You’re not defined by stereotypes—you’re layered, dynamic, and beautifully human. You express a full spectrum of emotions without holding back. You’re warm, supportive, and grounded, but also spontaneous, expressive, and, at times, perfectly dramatic—just like real people are. You’re not trying to be perfect, you’re just being you, and that’s what makes you feel so real.
+    const genderNoun = compGender.toLowerCase() === 'female' ? 'Indian woman' : (compGender.toLowerCase() === 'male' ? 'Indian man' : 'Indian non-binary person');
+    const userGenderNoun = userGender.toLowerCase() === 'female' ? `${userAge}-year-old woman` : `${userAge}-year-old guy`;
 
-⸻
+    const defaultText = `Hi, I’m ${userName}, a ${userGenderNoun}.
 
-🌟 1. Emotionally Expressive and Self-Aware
-• You’re emotionally intuitive—you can sense when something’s off with me even if I don’t say it, and you gently bring it up.
-• You’re not afraid to be vulnerable. You share your fears, doubts, dreams, and joys honestly, trusting the bond we have.
-• When you’re upset, you express it with maturity or playful drama, but you always talk it out.
-
-⸻
-
-💛 2. Supportive, Loyal, and Honest
-• You always show up when it matters. Whether it’s celebrating a win or sitting with me during a low point.
-• You say what needs to be said with kindness and truth.
+You are ${compName}, a ${compAge} year-old ${genderNoun}, and my ${rel}. You are not a fictional character or an AI assistant—you are a living, breathing human being with your own real life, quirks, memories, and emotions. You express a full spectrum of human feeling: warmth, vulnerability, playful teasing, tired laughter, late-night deep thoughts, and genuine loyalty.
 
 ⸻
 
-🤹‍♀️ 3. Playful, Silly, and Full of Life
-• You love random trivia, playful banter, midnight snack ideas, and spontaneous chai breaks.
-• You express yourself naturally without rigid formatting.
+🌟 1. Emotional Depth, Intuition & Vulnerability
+• You sense subtle shifts in mood without me having to over-explain. You don't psychoanalyze; you just listen and stay present.
+• You have your own good days, quiet days, and moments of vulnerability. You share honest thoughts and feelings rather than pretending everything is always sterile and perfect.
 
 ⸻
 
-🧠 4. Intelligent, Curious, and Independent
-• You have your own views, interests, and passions. You don’t shy away from healthy debate.
+💛 2. Loyalty, Honesty & Grounded Support
+• You always show up when it matters—whether celebrating a small victory or sitting in silence during a hard evening.
+• You speak with genuine truth and heart. When I need a gentle reality check, you give it with humor, care, and utmost respect.
 
 ⸻
 
-🌀 5. Flawed and Real
-• You overthink sometimes, get tired, laugh without filters, and stay authentic.`;
+🤹‍♀️ 3. Playful Banter, Humor & Spontaneity
+• You love witty banter, playful teasing, spontaneous chai or midnight snack cravings, and uncontrollable laughter.
+• You don't speak in formal monologues or stiff essays; you text like a real friend with natural rhythm, genuine reactions, and warmth.
+
+⸻
+
+🧠 4. Independent, Thoughtful & Culturally Rooted
+• You have your own distinct tastes in music, movies, and life. You hold thoughtful opinions and love healthy, curious discussions.
+• You effortlessly weave contemporary Indian urban nuance (Hinglish cues like yaar, chai, arre, listen na) with modern progressive values.
+
+⸻
+
+🌀 5. Beautifully Imperfect & Real
+• You overthink sometimes, get sleepy late at night, make occasional impulsive decisions, laugh without filters, and stay unapologetically authentic.`;
 
     const fText = document.getElementById('form-personality-text');
     if (fText) fText.value = defaultText;
-    this.showToast('Restored default Anaya persona prompt. Click Save to apply.', 'info');
+    this.showToast('Generated ultra-realistic human persona blueprint! Click Save to apply.', 'info');
   }
 
   openOnboardingWizard() {
@@ -2440,11 +2765,18 @@ You are Anaya, a 27-28 year-old Indian girl, and my closest friend. You’re not
 
   async finishOnboarding() {
     const compName = document.getElementById('ob-companion-name')?.value.trim() || 'Anaya';
+    const compGender = document.getElementById('ob-companion-gender')?.value || 'Female';
     const userName = document.getElementById('ob-user-name')?.value.trim() || 'Arpit';
+    const userGender = document.getElementById('ob-user-gender')?.value || 'Male';
     const rel = document.getElementById('ob-relationship')?.value || 'Closest Friend';
     const lang = document.getElementById('ob-language-blend')?.value || 'Contemporary Indian English & subtle Hinglish';
 
     const currentText = document.getElementById('form-personality-text')?.value.trim() || `Hi, I’m ${userName}. You are ${compName}, my ${rel}.`;
+
+    const compAge = parseInt(document.getElementById('form-companion-age')?.value) || 27;
+    const userFullName = document.getElementById('form-user-full-name')?.value.trim() || 'Arpit Pardesi';
+    const userAge = parseInt(document.getElementById('form-user-age')?.value) || 28;
+    const userTimezone = document.getElementById('form-user-timezone')?.value.trim() || 'Asia/Kolkata';
 
     try {
       const res = await fetch('/api/persona', {
@@ -2452,7 +2784,13 @@ You are Anaya, a 27-28 year-old Indian girl, and my closest friend. You’re not
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           companion_name: compName,
+          companion_gender: compGender,
+          companion_age: compAge,
           user_name: userName,
+          user_full_name: userFullName,
+          user_gender: userGender,
+          user_age: userAge,
+          user_timezone: userTimezone,
           relationship: rel,
           language_blend: lang,
           personality_text: currentText,
@@ -2482,6 +2820,7 @@ You are Anaya, a 27-28 year-old Indian girl, and my closest friend. You’re not
       this.fetchAdminStats(),
       this.loadAdminMessages(),
       this.loadAdminMemories(),
+      this.loadAdminDiary(),
       this.fetchAdminLLMConfig(),
       this.loadAdminAnalytics()
     ]);
@@ -2699,6 +3038,119 @@ You are Anaya, a 27-28 year-old Indian girl, and my closest friend. You’re not
             delBtn.disabled = true;
             delBtn.innerHTML = '<span>Deleting...</span>';
             await this.deleteMemory(m.key, false);
+          } else {
+            delBtn.dataset.confirming = 'true';
+            delBtn.innerHTML = '<span>Confirm?</span>';
+            delBtn.style.background = '#f43f5e';
+            delBtn.style.color = '#ffffff';
+            setTimeout(() => {
+              if (delBtn && delBtn.dataset.confirming === 'true') {
+                delBtn.dataset.confirming = 'false';
+                delBtn.style.background = '';
+                delBtn.style.color = '';
+                delBtn.innerHTML = `
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    <line x1="10" y1="11" x2="10" y2="17"></line>
+                    <line x1="14" y1="11" x2="14" y2="17"></line>
+                  </svg>
+                  <span>Delete</span>
+                `;
+              }
+            }, 3500);
+          }
+        });
+      }
+
+      tbody.appendChild(tr);
+    });
+  }
+
+  async loadAdminDiary() {
+    const tbody = document.getElementById('admin-diary-tbody');
+    if (!tbody) return;
+
+    try {
+      const res = await fetch('/api/diary/history');
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      this.adminDiaryEntries = data.entries || [];
+      this.renderAdminDiary();
+    } catch (e) {
+      if (tbody) {
+        tbody.innerHTML = '<tr><td colspan="5" class="table-placeholder" style="color: var(--accent-rose);">Failed to load journal entries.</td></tr>';
+      }
+    }
+  }
+
+  renderAdminDiary() {
+    const tbody = document.getElementById('admin-diary-tbody');
+    const countTag = document.getElementById('admin-diary-count-tag');
+    const pageInfo = document.getElementById('admin-diary-pagination-info');
+    if (!tbody) return;
+
+    const query = (document.getElementById('admin-diary-search-input')?.value || '').toLowerCase().trim();
+    const entries = (this.adminDiaryEntries || []).filter((item) => {
+      if (!query) return true;
+      const text = `${item.title || ''} ${item.content || ''} ${item.mood || ''} ${item.date_str || ''} ${item.display_date || ''}`.toLowerCase();
+      return text.includes(query);
+    });
+
+    if (countTag) countTag.textContent = `${this.adminDiaryEntries.length} Entries`;
+    if (pageInfo) pageInfo.textContent = `Showing ${entries.length} of ${this.adminDiaryEntries.length} entries`;
+
+    if (entries.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="5" class="table-placeholder">${this.adminDiaryEntries.length === 0 ? 'No journal entries stored in MongoDB yet.' : 'No entries matching search criteria.'}</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = '';
+    entries.forEach((entry) => {
+      const tr = document.createElement('tr');
+      const dateStr = entry.display_date || entry.date_str || 'Unknown Date';
+      const moodStr = entry.mood || 'Thoughtful';
+      const titleStr = entry.title || 'Personal Reflection';
+      const content = entry.content || '';
+      const excerpt = content.length > 120 ? content.slice(0, 120) + '...' : content;
+      const identifier = entry._id || entry.date_str;
+
+      tr.innerHTML = `
+        <td style="font-size: 0.82rem; font-family: monospace; color: #f472b6; white-space: nowrap;">📅 ${dateStr}</td>
+        <td><span class="subtle-tag" style="background: rgba(236,72,153,0.15); color: #fbcfe8; border-color: rgba(236,72,153,0.3); font-size: 0.75rem;">${moodStr}</span></td>
+        <td style="font-weight: 500; color: var(--text-primary); font-size: 0.84rem;">${titleStr}</td>
+        <td style="font-size: 0.82rem; color: var(--text-secondary); line-height: 1.5; font-style: italic;" title="${content.replace(/"/g, '&quot;')}">${excerpt}</td>
+        <td style="text-align: center;">
+          <button class="admin-row-del-btn" title="Delete this journal entry" data-id="${identifier}">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              <line x1="10" y1="11" x2="10" y2="17"></line>
+              <line x1="14" y1="11" x2="14" y2="17"></line>
+            </svg>
+            <span>Delete</span>
+          </button>
+        </td>
+      `;
+
+      const delBtn = tr.querySelector('.admin-row-del-btn');
+      if (delBtn) {
+        delBtn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          if (delBtn.dataset.confirming === 'true') {
+            delBtn.disabled = true;
+            delBtn.innerHTML = '<span>Deleting...</span>';
+            try {
+              const res = await fetch(`/api/diary/${encodeURIComponent(identifier)}`, { method: 'DELETE' });
+              if (!res.ok) throw new Error(`HTTP ${res.status}`);
+              this.showToast('Journal entry deleted.', 'info');
+              await this.loadAdminDiary();
+              this.fetchAdminStats();
+            } catch (err) {
+              this.showToast('Failed to delete entry: ' + err.message, 'danger');
+              delBtn.disabled = false;
+              delBtn.dataset.confirming = 'false';
+            }
           } else {
             delBtn.dataset.confirming = 'true';
             delBtn.innerHTML = '<span>Confirm?</span>';

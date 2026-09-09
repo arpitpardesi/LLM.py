@@ -2667,6 +2667,15 @@ dialog::backdrop {
   backdrop-filter: blur(8px);
 }
 
+.hidden {
+  display: none !important;
+}
+
+.diary-paper.hidden,
+.diary-archive-view.hidden {
+  display: none !important;
+}
+
 .proactive-banner.hidden {
   display: none !important;
 }
@@ -2974,12 +2983,73 @@ dialog::backdrop {
   color: #f472b6;
 }
 
+.diary-card-header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .diary-card-mood {
   font-size: 0.72rem;
   padding: 2px 7px;
   border-radius: 9999px;
   background: rgba(236, 72, 153, 0.15);
   color: #fbcfe8;
+}
+
+.diary-card-delete-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-sm);
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: all 0.18s ease;
+  padding: 0;
+}
+
+.diary-card-delete-btn:hover {
+  background: rgba(244, 63, 94, 0.2);
+  border-color: rgba(244, 63, 94, 0.45);
+  color: #f43f5e;
+  transform: scale(1.05);
+}
+
+.diary-date-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.diary-date-row .diary-date {
+  margin-bottom: 0;
+}
+
+.diary-del-entry-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(244, 63, 94, 0.08);
+  border: 1px solid rgba(244, 63, 94, 0.25);
+  color: #fb7185;
+  font-size: 0.72rem;
+  font-weight: 500;
+  padding: 4px 9px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.diary-del-entry-btn:hover {
+  background: rgba(244, 63, 94, 0.2);
+  border-color: rgba(244, 63, 94, 0.5);
+  color: #ffffff;
+  transform: translateY(-1px);
 }
 
 .diary-card-body {
