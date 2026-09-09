@@ -47,6 +47,21 @@ class AnayaApp {
     this.resetConfirmModal = document.getElementById('reset-confirm-modal');
     this.clearMemoriesModal = document.getElementById('clear-memories-modal');
     this.jsonModal = document.getElementById('json-modal');
+    this.momentsModal = document.getElementById('modal-moments');
+
+    // Theme & Moments & Analytics Elements
+    this.theme = localStorage.getItem('anaya_theme') || 'auto';
+    this.themeSelect = document.getElementById('theme-select');
+    this.currentThemeStatus = document.getElementById('current-theme-status');
+    this.btnCycleTheme = document.getElementById('btn-cycle-theme');
+    this.btnOpenMoments = document.getElementById('btn-open-moments');
+    this.btnCloseMoments = document.getElementById('btn-close-moments');
+    this.momentsGrid = document.getElementById('moments-grid');
+    this.btnRefreshAnalytics = document.getElementById('btn-refresh-analytics');
+    this.archiveUploadInput = document.getElementById('archive-upload-input');
+    this.btnSelectArchiveFile = document.getElementById('btn-select-archive-file');
+    this.selectedArchiveName = document.getElementById('selected-archive-name');
+    this.btnUploadRestoreArchive = document.getElementById('btn-upload-restore-archive');
 
     // Tab Navigation & Admin Explorer State
     this.currentTab = 'chat';
@@ -72,8 +87,11 @@ class AnayaApp {
   }
 
   init() {
+    this.initPWA();
+    this.initThemeEngine();
     this.initNavigation();
     this.bindEvents();
+    this.setupArchiveHandlers();
     this.setupAudioUnlocker();
     this.setupSpeechRecognition();
     this.loadChatHistory();
@@ -193,6 +211,22 @@ class AnayaApp {
     const btnCloseDiary = document.getElementById('btn-close-diary');
     if (btnCloseDiary) {
       btnCloseDiary.addEventListener('click', () => this.diaryModal?.close());
+    }
+
+    // Moments modal triggers
+    if (this.btnOpenMoments) {
+      this.btnOpenMoments.addEventListener('click', () => this.openMomentsModal());
+    }
+    if (this.btnCloseMoments) {
+      this.btnCloseMoments.addEventListener('click', () => this.closeMomentsModal());
+    }
+
+    // Analytics refresh trigger
+    if (this.btnRefreshAnalytics) {
+      this.btnRefreshAnalytics.addEventListener('click', () => {
+        this.loadAdminAnalytics();
+        this.showToast('Companion analytics updated!', 'info');
+      });
     }
 
     const btnRefreshDiary = document.getElementById('btn-refresh-diary');
@@ -1009,6 +1043,12 @@ class AnayaApp {
 
                   bWrapper.appendChild(bBubble);
                   bWrapper.appendChild(listenBtn);
+
+                  const musicCard = this.detectAndCreateMusicCard(bText);
+                  if (musicCard) {
+                    bWrapper.appendChild(musicCard);
+                  }
+
                   bWrapper.appendChild(meta);
                   cluster.appendChild(bWrapper);
                 });
@@ -1088,6 +1128,12 @@ class AnayaApp {
 
         bubbleWrapper.appendChild(bubble);
         bubbleWrapper.appendChild(listenBtn);
+
+        const musicCard = this.detectAndCreateMusicCard(burstText);
+        if (musicCard) {
+          bubbleWrapper.appendChild(musicCard);
+        }
+
         bubbleWrapper.appendChild(meta);
         cluster.appendChild(bubbleWrapper);
       });
@@ -2436,7 +2482,8 @@ You are Anaya, a 27-28 year-old Indian girl, and my closest friend. You’re not
       this.fetchAdminStats(),
       this.loadAdminMessages(),
       this.loadAdminMemories(),
-      this.fetchAdminLLMConfig()
+      this.fetchAdminLLMConfig(),
+      this.loadAdminAnalytics()
     ]);
   }
 
@@ -3181,6 +3228,357 @@ You are Anaya, a 27-28 year-old Indian girl, and my closest friend. You’re not
           Compile & Apply to Companion
         `;
       }
+    }
+  }
+
+  // =========================================================================
+  // Native PWA & Offline Shell
+  // =========================================================================
+
+  initPWA() {
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').then((reg) => {
+          console.log('[Anaya PWA] Service Worker registered with scope:', reg.scope);
+        }).catch((err) => {
+          console.warn('[Anaya PWA] Service Worker registration skipped:', err);
+        });
+      });
+    }
+  }
+
+  // =========================================================================
+  // Ambient Time-of-Day Theming Engine
+  // =========================================================================
+
+  initThemeEngine() {
+    this.theme = localStorage.getItem('anaya_theme') || 'auto';
+    this.applyTheme(this.theme);
+
+    if (this.themeSelect) {
+      this.themeSelect.value = this.theme;
+      this.themeSelect.addEventListener('change', (e) => {
+        this.applyTheme(e.target.value);
+      });
+    }
+
+    if (this.btnCycleTheme) {
+      this.btnCycleTheme.addEventListener('click', () => {
+        const order = ['auto', 'dawn', 'daylight', 'sunset', 'midnight'];
+        const currentIdx = order.indexOf(this.theme);
+        const nextTheme = order[(currentIdx + 1) % order.length];
+        this.applyTheme(nextTheme);
+        if (this.themeSelect) this.themeSelect.value = nextTheme;
+      });
+    }
+
+    // Periodically re-evaluate auto theme every 5 minutes
+    setInterval(() => {
+      if (this.theme === 'auto') {
+        this.applyTheme('auto');
+      }
+    }, 300000);
+  }
+
+  detectTimeOfDayTheme() {
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 11) return 'dawn';
+    if (hour >= 11 && hour < 17) return 'daylight';
+    if (hour >= 17 && hour < 21) return 'sunset';
+    return 'midnight';
+  }
+
+  applyTheme(themeKey) {
+    this.theme = themeKey;
+    localStorage.setItem('anaya_theme', themeKey);
+    let resolved = themeKey;
+    if (themeKey === 'auto') {
+      resolved = this.detectTimeOfDayTheme();
+    }
+    document.documentElement.setAttribute('data-theme', resolved);
+
+    const labels = {
+      auto: `Auto (${resolved.charAt(0).toUpperCase() + resolved.slice(1)})`,
+      dawn: 'Dawn 🌅',
+      daylight: 'Daylight ☀️',
+      sunset: 'Sunset 🌆',
+      midnight: 'Obsidian Midnight 🌌'
+    };
+
+    if (this.currentThemeStatus) {
+      this.currentThemeStatus.textContent = `Active: ${labels[themeKey] || resolved}`;
+    }
+  }
+
+  // =========================================================================
+  // Rich Media: Song Recommendation Detection & Inline Card
+  // =========================================================================
+
+  detectAndCreateMusicCard(text) {
+    if (!text) return null;
+    // Detect patterns like **'Kasoor' by Prateek Kuhad** or 'Kasoor' by Prateek Kuhad or "Kasoor" by Prateek Kuhad
+    const match = text.match(/(?:\*\*['"]?|['"])(.+?)['"]?\s+by\s+([A-Za-z0-9\s.&'-]+?)(?:\*\*|['"]|[,\.!?\s]|$)/i);
+    if (!match) return null;
+
+    const title = match[1].trim().replace(/^['"*]+|['"*]+$/g, '');
+    const artist = match[2].trim().replace(/^['"*]+|['"*]+$/g, '');
+    if (title.length < 2 || artist.length < 2) return null;
+
+    const spotifyUrl = `https://open.spotify.com/search/${encodeURIComponent(title + ' ' + artist)}`;
+    const youtubeUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(title + ' ' + artist)}`;
+
+    const card = document.createElement('div');
+    card.className = 'inline-music-card';
+    card.innerHTML = `
+      <div class="music-card-info">
+        <div class="music-card-disc" title="Music Vibe"></div>
+        <div class="music-card-meta">
+          <span class="music-card-badge">🎵 Song Vibe</span>
+          <span class="music-card-title">${this.escapeHtml(title)}</span>
+          <span class="music-card-artist">${this.escapeHtml(artist)}</span>
+        </div>
+      </div>
+      <div class="music-card-actions">
+        <a href="${spotifyUrl}" target="_blank" rel="noopener noreferrer" class="music-action-btn music-action-spotify" title="Listen on Spotify">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm4.586 14.424c-.18.295-.563.387-.857.207-2.35-1.435-5.308-1.76-8.793-.963-.335.077-.67-.133-.746-.468-.077-.334.132-.67.467-.745 3.808-.87 7.076-.505 9.722 1.112.294.18.386.563.207.857zm1.226-2.723c-.226.367-.707.483-1.074.257-2.69-1.653-6.79-2.131-9.97-1.165-.413.125-.849-.108-.974-.522-.125-.413.108-.849.522-.974 3.632-1.102 8.147-.568 11.24 1.33.367.226.483.707.256 1.074zm.106-2.835C14.692 8.95 9.28 8.77 6.136 9.725c-.495.15-1.02-.132-1.17-.627-.15-.495.132-1.02.627-1.17 3.616-1.097 9.585-.89 13.313 1.323.447.265.592.845.327 1.291-.265.447-.845.592-1.291.327z"/></svg>
+          Spotify
+        </a>
+        <a href="${youtubeUrl}" target="_blank" rel="noopener noreferrer" class="music-action-btn music-action-youtube" title="Watch on YouTube">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+          YouTube
+        </a>
+      </div>
+    `;
+    return card;
+  }
+
+  // =========================================================================
+  // Camera Roll & Moments Modal
+  // =========================================================================
+
+  openMomentsModal() {
+    if (!this.momentsModal) return;
+    try {
+      this.momentsModal.showModal();
+    } catch (_) {
+      this.momentsModal.setAttribute('open', '');
+    }
+    this.loadMoments();
+  }
+
+  closeMomentsModal() {
+    if (!this.momentsModal) return;
+    try {
+      this.momentsModal.close();
+    } catch (_) {
+      this.momentsModal.removeAttribute('open');
+    }
+  }
+
+  async loadMoments() {
+    if (!this.momentsGrid) return;
+    this.momentsGrid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: var(--text-dim); padding: 2rem;">Loading camera roll...</div>';
+    try {
+      const res = await fetch('/api/moments');
+      if (!res.ok) throw new Error('Failed to load moments');
+      const data = await res.json();
+      const moments = data.moments || [];
+      if (moments.length === 0) {
+        this.momentsGrid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: var(--text-dim); padding: 2rem;">No moments captured yet today.</div>';
+        return;
+      }
+      this.momentsGrid.innerHTML = '';
+      moments.forEach((m) => {
+        const card = document.createElement('div');
+        card.className = 'moment-card';
+        card.innerHTML = `
+          <div class="moment-img-wrapper" style="background: ${m.gradient || 'var(--bg-surface-3)'};">
+            ${m.photo_url ? `<img src="${m.photo_url}" alt="${this.escapeHtml(m.title)}" class="moment-img" />` : `<span style="font-size: 3rem;">${m.icon || '📸'}</span>`}
+            <span class="moment-period-badge">${this.escapeHtml(m.time_hint || m.period || 'Today')}</span>
+          </div>
+          <div class="moment-body">
+            <h4 class="moment-title">${this.escapeHtml(m.title)}</h4>
+            <p class="moment-caption">"${this.escapeHtml(m.caption)}"</p>
+            <div class="moment-footer">
+              <span class="moment-vibe-tag">✨ ${this.escapeHtml(m.mood || 'Cozy')}</span>
+              <span class="moment-sound-tag">🕒 ${this.escapeHtml(m.time_hint || 'Today')}</span>
+            </div>
+          </div>
+        `;
+        this.momentsGrid.appendChild(card);
+      });
+    } catch (err) {
+      this.momentsGrid.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; color: var(--accent-rose); padding: 2rem;">Error: ${this.escapeHtml(err.message)}</div>`;
+    }
+  }
+
+  // =========================================================================
+  // Companion Analytics Dashboard
+  // =========================================================================
+
+  async loadAdminAnalytics() {
+    try {
+      const res = await fetch('/api/analytics');
+      if (!res.ok) return;
+      const data = await res.json();
+
+      // 1. Total turns tag
+      const turnsTag = document.getElementById('analytics-total-turns-tag');
+      const activity = data.activity_history || data.daily_activity || [];
+      const totalTurns = data.summary?.total_messages || (activity.reduce((acc, d) => acc + (d.total || 0), 0));
+      if (turnsTag) {
+        turnsTag.textContent = `${totalTurns} Total Turns (14d)`;
+      }
+
+      // 2. Activity Bars Histogram
+      const barsContainer = document.getElementById('activity-bars-container');
+      if (barsContainer) {
+        barsContainer.innerHTML = '';
+        const maxTurns = Math.max(1, ...activity.map((d) => d.total || d.turns || 0));
+
+        activity.forEach((d) => {
+          const col = document.createElement('div');
+          col.className = 'activity-day-col';
+          const count = d.total !== undefined ? d.total : (d.turns || 0);
+          const heightPct = Math.max(8, Math.round((count / maxTurns) * 100));
+          const userT = d.user_turns !== undefined ? d.user_turns : (d.user_msgs || 0);
+          const botT = d.assistant_turns !== undefined ? d.assistant_turns : (d.companion_msgs || 0);
+          col.innerHTML = `
+            <div class="activity-bar" style="height: ${heightPct}%;" title="${d.date}: ${count} turns (${userT} user / ${botT} companion)"></div>
+            <span class="activity-day-label">${d.label || d.date.slice(5)}</span>
+          `;
+          barsContainer.appendChild(col);
+        });
+      }
+
+      // 3. Dominant Mood & Distribution Meters
+      const moods = data.mood_distribution || data.mood_breakdown || [];
+      const domMoodTag = document.getElementById('analytics-dominant-mood-tag');
+      const dominantMood = moods[0]?.mood || moods[0]?.name || data.dominant_mood || 'Warm & Playful';
+      if (domMoodTag) {
+        domMoodTag.textContent = `Dominant: ${dominantMood}`;
+      }
+
+      const metersContainer = document.getElementById('mood-meters-container');
+      if (metersContainer) {
+        metersContainer.innerHTML = '';
+        if (moods.length === 0) {
+          metersContainer.innerHTML = '<span style="color: var(--text-dim); font-size: 0.8rem;">No emotional shifts recorded yet.</span>';
+        } else {
+          moods.forEach((m) => {
+            const moodName = m.mood || m.name;
+            const row = document.createElement('div');
+            row.className = 'mood-meter-row';
+            row.innerHTML = `
+              <div class="mood-meter-meta">
+                <span>${this.escapeHtml(moodName)}</span>
+                <span>${m.percentage}% (${m.count})</span>
+              </div>
+              <div class="mood-meter-track">
+                <div class="mood-meter-fill" style="width: ${m.percentage}%;"></div>
+              </div>
+            `;
+            metersContainer.appendChild(row);
+          });
+        }
+      }
+
+      // 4. Lifetime Milestones
+      const milestonesGrid = document.getElementById('milestones-grid');
+      if (milestonesGrid) {
+        milestonesGrid.innerHTML = '';
+        const milestones = data.milestones || [];
+        milestones.forEach((m) => {
+          const item = document.createElement('div');
+          item.className = `milestone-item ${m.achieved ? 'achieved' : 'locked'}`;
+          item.innerHTML = `
+            <span class="milestone-icon">${m.icon || '⭐'}</span>
+            <div class="milestone-info">
+              <span class="milestone-title">${this.escapeHtml(m.title)} ${m.achieved ? '✓' : '🔒'}</span>
+              <span class="milestone-desc">${this.escapeHtml(m.desc)}</span>
+            </div>
+          `;
+          milestonesGrid.appendChild(item);
+        });
+      }
+    } catch (err) {
+      console.warn('Failed to load companion analytics:', err);
+    }
+  }
+
+  // =========================================================================
+  // Data Portability & Archive Restore Handler
+  // =========================================================================
+
+  setupArchiveHandlers() {
+    if (this.btnSelectArchiveFile && this.archiveUploadInput) {
+      this.btnSelectArchiveFile.addEventListener('click', () => {
+        this.archiveUploadInput.click();
+      });
+
+      this.archiveUploadInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          if (this.selectedArchiveName) {
+            this.selectedArchiveName.textContent = `${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+          }
+          if (this.btnUploadRestoreArchive) {
+            this.btnUploadRestoreArchive.style.display = 'block';
+          }
+        }
+      });
+    }
+
+    if (this.btnUploadRestoreArchive) {
+      this.btnUploadRestoreArchive.addEventListener('click', async () => {
+        const file = this.archiveUploadInput?.files[0];
+        if (!file) return;
+
+        const confirmRestore = confirm(
+          `Warning: Restoring this archive will replace your current conversation history, memories, diary entries, and personality configuration with data from "${file.name}".\n\nDo you wish to proceed?`
+        );
+        if (!confirmRestore) return;
+
+        this.btnUploadRestoreArchive.disabled = true;
+        this.btnUploadRestoreArchive.textContent = 'Restoring Archive...';
+
+        try {
+          const formData = new FormData();
+          formData.append('file', file);
+
+          const res = await fetch('/api/admin/restore-archive', {
+            method: 'POST',
+            body: formData,
+          });
+
+          const data = await res.json();
+          if (!res.ok || !data.success) {
+            throw new Error(data.detail || data.message || 'Restore failed');
+          }
+
+          this.showToast(
+            `Archive restored! (${data.stats?.messages || 0} msgs, ${data.stats?.memories || 0} memories)`,
+            'success'
+          );
+
+          // Clear upload input state
+          this.archiveUploadInput.value = '';
+          if (this.selectedArchiveName) this.selectedArchiveName.textContent = '';
+          this.btnUploadRestoreArchive.style.display = 'none';
+
+          // Reload all state
+          await Promise.all([
+            this.loadAdminData(),
+            this.loadChatHistory(),
+            this.refreshStatus(),
+          ]);
+        } catch (err) {
+          this.showToast(`Restore Error: ${err.message}`, 'danger');
+        } finally {
+          this.btnUploadRestoreArchive.disabled = false;
+          this.btnUploadRestoreArchive.textContent = 'Confirm & Restore Archive';
+        }
+      });
     }
   }
 }

@@ -773,6 +773,162 @@ class DatabaseManager:
             content = "\n".join(lines)
             return filename, content, "text/markdown; charset=utf-8"
 
+    def export_full_archive(self) -> Tuple[str, bytes]:
+        """
+        Creates a complete ZIP archive containing:
+        - conversations.json
+        - memories.json
+        - diary.json
+        - traits.json
+        - state.json
+        - personality.txt
+        - manifest.json
+        Returns (filename, zip_bytes).
+        """
+        import io
+        import json
+        import zipfile
+
+        now_str = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"anaya_companion_archive_{now_str}.zip"
+        buffer = io.BytesIO()
+
+        def serialize_docs(cursor):
+            docs = []
+            for d in cursor:
+                item = dict(d)
+                if "_id" in item:
+                    item["_id"] = str(item["_id"])
+                for k, v in item.items():
+                    if isinstance(v, datetime.datetime):
+                        item[k] = v.isoformat()
+                docs.append(item)
+            return docs
+
+        with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zf:
+            # 1. Conversations
+            convo_docs = serialize_docs(self.convo_col.find().sort("timestamp", ASCENDING))
+            zf.writestr("conversations.json", json.dumps(convo_docs, indent=2, ensure_ascii=False))
+
+            # 2. Memories
+            mem_docs = serialize_docs(self.memories_col.find().sort("updated_at", DESCENDING))
+            zf.writestr("memories.json", json.dumps(mem_docs, indent=2, ensure_ascii=False))
+
+            # 3. Diary
+            diary_docs = serialize_docs(self.diary_col.find().sort("date_str", DESCENDING)) if self.diary_col is not None else []
+            zf.writestr("diary.json", json.dumps(diary_docs, indent=2, ensure_ascii=False))
+
+            # 4. Traits
+            trait_docs = serialize_docs(self.traits_col.find().sort("order", ASCENDING)) if self.traits_col is not None else []
+            zf.writestr("traits.json", json.dumps(trait_docs, indent=2, ensure_ascii=False))
+
+            # 5. Living State
+            state_doc = self.get_anaya_state()
+            if "_id" in state_doc:
+                state_doc["_id"] = str(state_doc["_id"])
+            if isinstance(state_doc.get("updated_at"), datetime.datetime):
+                state_doc["updated_at"] = state_doc["updated_at"].isoformat()
+            zf.writestr("state.json", json.dumps(state_doc, indent=2, ensure_ascii=False))
+
+            # 6. Personality prompt on disk
+            try:
+                from core.persona import persona_engine
+                raw_persona = persona_engine.base_persona
+            except Exception:
+                raw_persona = ""
+            zf.writestr("personality.txt", raw_persona)
+
+            # 7. Metadata Manifest
+            manifest = {
+                "version": "2.0.0",
+                "exported_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                "companion_name": config.user.companion_name,
+                "user_name": config.user.user_name,
+                "counts": {
+                    "conversations": len(convo_docs),
+                    "memories": len(mem_docs),
+                    "diary_entries": len(diary_docs),
+                    "traits": len(trait_docs)
+                }
+            }
+            zf.writestr("manifest.json", json.dumps(manifest, indent=2, ensure_ascii=False))
+
+        buffer.seek(0)
+        return filename, buffer.getvalue()
+
+    def restore_full_archive(self, zip_bytes: bytes) -> Tuple[bool, str]:
+        """
+        Extracts and restores database collections and personality from a ZIP archive.
+        """
+        import io
+        import json
+        import zipfile
+
+        try:
+            buffer = io.BytesIO(zip_bytes)
+            with zipfile.ZipFile(buffer, "r") as zf:
+                namelist = zf.namelist()
+                if "manifest.json" not in namelist:
+                    return False, "Invalid archive: manifest.json is missing."
+
+                # Restore memories
+                if "memories.json" in namelist:
+                    mem_data = json.loads(zf.read("memories.json").decode("utf-8"))
+                    if isinstance(mem_data, list) and mem_data:
+                        for m in mem_data:
+                            if "_id" in m:
+                                del m["_id"]
+                            if "updated_at" in m and isinstance(m["updated_at"], str):
+                                try:
+                                    m["updated_at"] = datetime.datetime.fromisoformat(m["updated_at"])
+                                except Exception:
+                                    m["updated_at"] = datetime.datetime.now(datetime.timezone.utc)
+                            self.memories_col.update_one({"key": m["key"]}, {"$set": m}, upsert=True)
+
+                # Restore diary
+                if "diary.json" in namelist and self.diary_col is not None:
+                    diary_data = json.loads(zf.read("diary.json").decode("utf-8"))
+                    if isinstance(diary_data, list) and diary_data:
+                        for d in diary_data:
+                            if "_id" in d:
+                                del d["_id"]
+                            if "created_at" in d and isinstance(d["created_at"], str):
+                                try:
+                                    d["created_at"] = datetime.datetime.fromisoformat(d["created_at"])
+                                except Exception:
+                                    d["created_at"] = datetime.datetime.now(datetime.timezone.utc)
+                            if "date_str" in d:
+                                self.diary_col.update_one({"date_str": d["date_str"]}, {"$set": d}, upsert=True)
+
+                # Restore traits
+                if "traits.json" in namelist and self.traits_col is not None:
+                    trait_data = json.loads(zf.read("traits.json").decode("utf-8"))
+                    if isinstance(trait_data, list) and trait_data:
+                        self.traits_col.delete_many({})
+                        for t in trait_data:
+                            if "_id" in t:
+                                del t["_id"]
+                        self.traits_col.insert_many(trait_data)
+
+                # Restore state
+                if "state.json" in namelist and self.state_col is not None:
+                    state_data = json.loads(zf.read("state.json").decode("utf-8"))
+                    if isinstance(state_data, dict):
+                        if "_id" in state_data:
+                            del state_data["_id"]
+                        self.state_col.update_one({"singleton_id": "anaya_state"}, {"$set": state_data}, upsert=True)
+
+                # Restore personality.txt
+                if "personality.txt" in namelist:
+                    raw_txt = zf.read("personality.txt").decode("utf-8")
+                    if raw_txt.strip():
+                        from core.persona import persona_engine
+                        persona_engine.update_personality(raw_txt)
+
+            return True, "Companion archive restored successfully."
+        except Exception as e:
+            return False, f"Failed to restore archive: {e}"
+
     # -------------------------------------------------------------
     # Personality Builder & Modular Trait Management
     # (Evolved from legacy personalityAI_v1.py)

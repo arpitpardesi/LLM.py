@@ -1,0 +1,38 @@
+{
+  "name": "Anaya • Personal AI Companion",
+  "short_name": "Anaya",
+  "description": "Warm, authentic personal AI companion with realistic conversational flow and living memory.",
+  "start_url": "/",
+  "id": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0f",
+  "theme_color": "#0f0f17",
+  "orientation": "portrait-primary",
+  "categories": ["lifestyle", "social", "entertainment"],
+  "icons": [
+    {
+      "src": "/static/img/avatar.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/img/avatar.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Chat with Anaya",
+      "url": "/#view-chat",
+      "description": "Start talking with Anaya"
+    },
+    {
+      "name": "Secret Journal",
+      "url": "/#view-chat?open=diary",
+      "description": "Read Anaya's personal journal"
+    }
+  ]
+}

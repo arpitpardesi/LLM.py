@@ -55,6 +55,79 @@
   --transition-smooth: 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* Ambient Time-of-Day Themes */
+[data-theme="dawn"] {
+  --bg-app: #0e0d15;
+  --bg-surface-1: #151320;
+  --bg-surface-2: #1b1828;
+  --bg-surface-3: #221f32;
+  --bg-surface-hover: #2a253d;
+  --bg-input: #171524;
+  --accent-primary: #f472b6;
+  --accent-primary-hover: #f9a8d4;
+  --accent-primary-subtle: rgba(244, 114, 182, 0.14);
+  --accent-primary-border: rgba(244, 114, 182, 0.32);
+  --border-subtle: rgba(244, 114, 182, 0.1);
+  --border-medium: rgba(244, 114, 182, 0.18);
+}
+[data-theme="dawn"] .subtle-bg-glow {
+  background: radial-gradient(circle, rgba(244, 114, 182, 0.08) 0%, rgba(251, 146, 60, 0.05) 50%, transparent 70%);
+}
+
+[data-theme="daylight"] {
+  --bg-app: #0b1120;
+  --bg-surface-1: #162032;
+  --bg-surface-2: #1e2b42;
+  --bg-surface-3: #243450;
+  --bg-surface-hover: #2c3f60;
+  --bg-input: #141f30;
+  --accent-primary: #38bdf8;
+  --accent-primary-hover: #7dd3fc;
+  --accent-primary-subtle: rgba(56, 189, 248, 0.14);
+  --accent-primary-border: rgba(56, 189, 248, 0.32);
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-medium: rgba(255, 255, 255, 0.14);
+}
+[data-theme="daylight"] .subtle-bg-glow {
+  background: radial-gradient(circle, rgba(56, 189, 248, 0.08) 0%, rgba(99, 102, 241, 0.05) 50%, transparent 70%);
+}
+
+[data-theme="sunset"] {
+  --bg-app: #120b0b;
+  --bg-surface-1: #1c1110;
+  --bg-surface-2: #241615;
+  --bg-surface-3: #2e1d1b;
+  --bg-surface-hover: #3a2523;
+  --bg-input: #1e1211;
+  --accent-primary: #f59e0b;
+  --accent-primary-hover: #fbbf24;
+  --accent-primary-subtle: rgba(245, 158, 11, 0.14);
+  --accent-primary-border: rgba(245, 158, 11, 0.32);
+  --border-subtle: rgba(245, 158, 11, 0.1);
+  --border-medium: rgba(245, 158, 11, 0.18);
+}
+[data-theme="sunset"] .subtle-bg-glow {
+  background: radial-gradient(circle, rgba(245, 158, 11, 0.09) 0%, rgba(239, 68, 68, 0.05) 50%, transparent 70%);
+}
+
+[data-theme="midnight"] {
+  --bg-app: #06070a;
+  --bg-surface-1: #0d0f14;
+  --bg-surface-2: #12151c;
+  --bg-surface-3: #181c26;
+  --bg-surface-hover: #1e2330;
+  --bg-input: #0f1118;
+  --accent-primary: #c084fc;
+  --accent-primary-hover: #d8b4fe;
+  --accent-primary-subtle: rgba(192, 132, 252, 0.14);
+  --accent-primary-border: rgba(192, 132, 252, 0.32);
+  --border-subtle: rgba(192, 132, 252, 0.08);
+  --border-medium: rgba(192, 132, 252, 0.16);
+}
+[data-theme="midnight"] .subtle-bg-glow {
+  background: radial-gradient(circle, rgba(168, 85, 247, 0.08) 0%, rgba(59, 130, 246, 0.04) 50%, transparent 70%);
+}
+
 /* Reset */
 *, *::before, *::after {
   box-sizing: border-box;
@@ -2924,5 +2997,408 @@ dialog::backdrop {
   font-size: 0.86rem;
   padding: 2rem 0;
 }
+
+/* ==========================================================================
+   Inline Music Recommendation Card (Spotify & YouTube)
+   ========================================================================== */
+
+.inline-music-card {
+  margin-top: 8px;
+  background: rgba(18, 21, 30, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--accent-primary-border);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  animation: fadeIn 0.25s ease-out;
+  max-width: 480px;
+}
+
+.music-card-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.music-card-disc {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #38bdf8, #1e1b4b);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  position: relative;
+  animation: rotateDisc 10s linear infinite;
+}
+
+@keyframes rotateDisc {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.music-card-disc::after {
+  content: '';
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--bg-app);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.music-card-meta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.music-card-badge {
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent-primary);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.music-card-title {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.music-card-artist {
+  font-size: 0.76rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.music-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.music-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: 0.74rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all var(--transition-fast);
+  cursor: pointer;
+}
+
+.music-action-spotify {
+  background: rgba(30, 215, 96, 0.15);
+  color: #1ed760;
+  border: 1px solid rgba(30, 215, 96, 0.35);
+}
+
+.music-action-spotify:hover {
+  background: rgba(30, 215, 96, 0.28);
+  border-color: #1ed760;
+  transform: translateY(-1px);
+}
+
+.music-action-youtube {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+}
+
+.music-action-youtube:hover {
+  background: rgba(239, 68, 68, 0.28);
+  border-color: #f87171;
+  transform: translateY(-1px);
+}
+
+/* ==========================================================================
+   Camera Roll Moments Gallery & Modal
+   ========================================================================== */
+
+.moments-modal {
+  max-width: 900px;
+  width: 95vw;
+}
+
+.moments-card {
+  max-width: 900px;
+  width: 100%;
+}
+
+.moments-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  margin-top: 14px;
+  max-height: 70vh;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.moment-card {
+  background: var(--bg-surface-2);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: all var(--transition-smooth);
+}
+
+.moment-card:hover {
+  border-color: var(--accent-primary-border);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.moment-img-wrapper {
+  position: relative;
+  width: 100%;
+  height: 150px;
+  overflow: hidden;
+  background: var(--bg-surface-3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.moment-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.35s ease;
+}
+
+.moment-card:hover .moment-img {
+  transform: scale(1.05);
+}
+
+.moment-period-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: rgba(10, 12, 16, 0.75);
+  backdrop-filter: blur(8px);
+  font-size: 0.7rem;
+  padding: 3px 8px;
+  border-radius: 9999px;
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.moment-body {
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.moment-title {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+
+.moment-caption {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin-bottom: 10px;
+  flex: 1;
+  font-style: italic;
+}
+
+.moment-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.72rem;
+  border-top: 1px solid var(--border-subtle);
+  padding-top: 8px;
+  color: var(--text-muted);
+}
+
+.moment-vibe-tag {
+  color: var(--accent-primary);
+  font-weight: 500;
+}
+
+/* ==========================================================================
+   Analytics Dashboard, Activity Histogram, Mood Breakdown & Milestones
+   ========================================================================== */
+
+.analytics-layout-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 16px;
+  margin-top: 14px;
+}
+
+.analytics-subcard {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+}
+
+.analytics-subcard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.analytics-subcard-header h4 {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.activity-bars-container {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  height: 120px;
+  padding: 10px 0 4px 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.activity-day-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+  justify-content: flex-end;
+  position: relative;
+}
+
+.activity-bar {
+  width: 100%;
+  background: linear-gradient(to top, var(--accent-indigo), var(--accent-primary));
+  border-radius: 3px 3px 0 0;
+  min-height: 4px;
+  transition: height 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  cursor: pointer;
+}
+
+.activity-bar:hover {
+  filter: brightness(1.25);
+}
+
+.activity-day-label {
+  font-size: 0.65rem;
+  color: var(--text-dim);
+  margin-top: 6px;
+}
+
+.mood-meters-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 140px;
+  overflow-y: auto;
+}
+
+.mood-meter-row {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.mood-meter-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.74rem;
+  color: var(--text-secondary);
+}
+
+.mood-meter-track {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.mood-meter-fill {
+  height: 100%;
+  background: var(--accent-primary);
+  border-radius: 9999px;
+  transition: width 0.5s ease;
+}
+
+.milestones-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.milestone-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--bg-surface-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  transition: all var(--transition-fast);
+}
+
+.milestone-item.achieved {
+  border-color: rgba(16, 185, 129, 0.35);
+  background: rgba(16, 185, 129, 0.05);
+}
+
+.milestone-item.locked {
+  opacity: 0.55;
+  filter: grayscale(0.8);
+}
+
+.milestone-icon {
+  font-size: 1.3rem;
+  min-width: 24px;
+}
+
+.milestone-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.milestone-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.milestone-desc {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
 
 

@@ -25,7 +25,7 @@ if VENV_PY.exists() and sys.executable != str(VENV_PY):
 if str(CURRENT_DIR) not in sys.path:
     sys.path.insert(0, str(CURRENT_DIR))
 
-from fastapi import FastAPI, Request, HTTPException, Response
+from fastapi import FastAPI, Request, HTTPException, Response, UploadFile, File
 from fastapi.responses import HTMLResponse, StreamingResponse, JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
@@ -43,6 +43,8 @@ from core.voice_engine import voice_engine
 from core.affinity_engine import affinity_engine
 from core.activities_engine import activities_engine
 from core.semantic_memory import semantic_memory_engine
+from core.media_engine import media_engine
+from core.analytics_engine import analytics_engine
 
 app = FastAPI(title="Anaya 2.0 Web Companion", version="2.0.0")
 
@@ -156,6 +158,30 @@ async def serve_index():
         raise HTTPException(status_code=404, detail="index.html not found")
     with open(index_file, "r", encoding="utf-8") as f:
         return f.read()
+
+
+@app.get("/manifest.json")
+async def serve_manifest():
+    """Serves PWA manifest file."""
+    manifest_file = WEB_DIR / "manifest.json"
+    if not manifest_file.exists():
+        raise HTTPException(status_code=404, detail="manifest.json not found")
+    return FileResponse(manifest_file, media_type="application/manifest+json")
+
+
+@app.get("/sw.js")
+async def serve_service_worker():
+    """Serves PWA Service Worker script from root scope."""
+    sw_file = WEB_DIR / "sw.js"
+    if not sw_file.exists():
+        raise HTTPException(status_code=404, detail="sw.js not found")
+    return FileResponse(sw_file, media_type="application/javascript")
+
+
+@app.get("/api/moments")
+async def get_moments():
+    """Returns Anaya's visual Camera Roll moments from her daily life."""
+    return {"moments": media_engine.get_all_moments()}
 
 
 @app.get("/api/status")
@@ -279,10 +305,12 @@ async def chat_endpoint(payload: ChatRequest):
             # only AFTER streaming finishes to eliminate GPU contention and stuttering!
             asyncio.create_task(asyncio.to_thread(memory_engine.extract_and_save_facts, user_text))
 
+            music_rec = media_engine.detect_song_recommendation(full_response.strip())
             done_payload = json.dumps({
                 "done": True,
                 "full_response": full_response.strip(),
-                "mood": mood_engine.get_current_mood()
+                "mood": mood_engine.get_current_mood(),
+                "media": music_rec
             })
             yield f"data: {done_payload}\n\n"
         except Exception as e:
@@ -859,6 +887,54 @@ async def admin_export(format: str = "json"):
         media_type=mime_type,
         headers={"Content-Disposition": f'attachment; filename="{filename}"'}
     )
+
+
+@app.get("/api/analytics")
+async def get_analytics():
+    """Returns companion analytics, 14-day turn activity, mood distribution, and milestones."""
+    return analytics_engine.get_full_analytics()
+
+
+@app.get("/api/admin/export-archive")
+async def admin_export_archive():
+    """Downloads complete companion state archive as a .zip file."""
+    filename, zip_bytes = db_manager.export_full_archive()
+    return Response(
+        content=zip_bytes,
+        media_type="application/zip",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+    )
+
+
+@app.post("/api/admin/restore-archive")
+async def admin_restore_archive(file: UploadFile = File(...)):
+    """Restores full companion database state and personality from uploaded .zip archive."""
+    if not file.filename.endswith(".zip"):
+        raise HTTPException(status_code=400, detail="Only .zip archive files are supported")
+    try:
+        content = await file.read()
+        res = db_manager.restore_full_archive(content)
+        if isinstance(res, tuple) and len(res) == 2:
+            success, message = res
+            restored_stats = {}
+        elif isinstance(res, tuple) and len(res) >= 3:
+            success, message, restored_stats = res[0], res[1], res[2]
+        else:
+            success, message, restored_stats = False, "Unknown response from restore operation", {}
+
+        if not success:
+            raise HTTPException(status_code=400, detail=message)
+        # Reload persona engine to pick up any restored traits/seed
+        persona_engine.reload_personality()
+        return {
+            "success": True,
+            "message": message,
+            "stats": restored_stats
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to restore archive: {str(e)}")
 
 
 @app.post("/api/admin/clear-cache")
