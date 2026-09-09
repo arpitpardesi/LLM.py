@@ -54,6 +54,7 @@ class DatabaseManager:
             self.threads_col = self.db[self.db_config.life_threads_collection]
             self.state_col = self.db[self.db_config.state_collection]
             self.traits_col = self.db["personality_traits"]
+            self.diary_col = self.db["anaya_diary"]
         except Exception as e:
             print(f"[Warning] Failed to connect to MongoDB: {e}")
 
@@ -78,6 +79,10 @@ class DatabaseManager:
             self.threads_col.create_index([("topic", ASCENDING)])
 
             self.state_col.create_index([("singleton_id", ASCENDING)], unique=True)
+
+            if self.diary_col is not None:
+                self.diary_col.create_index([("date_str", DESCENDING)], unique=True)
+                self.diary_col.create_index([("created_at", DESCENDING)])
         except Exception as e:
             # Index creation warning (non-fatal)
             pass
@@ -931,6 +936,75 @@ class DatabaseManager:
         ])
 
         return "\n".join(lines)
+
+    # -------------------------------------------------------------
+    # Secret Personal Diary & Journal Archive
+    # -------------------------------------------------------------
+
+    def save_diary_entry(
+        self,
+        entry: str,
+        title: str = "Private Reflection",
+        mood: str = "Thoughtful",
+        activity: str = "",
+        date_str: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Saves or updates today's personal secret diary entry."""
+        if self.diary_col is None:
+            return {}
+
+        now = datetime.datetime.now()
+        target_date = date_str or now.strftime("%Y-%m-%d")
+        display_date = now.strftime("%A, %d %B %Y")
+
+        doc = {
+            "date_str": target_date,
+            "display_date": display_date,
+            "title": title or "Private Reflections & Thoughts",
+            "content": entry.strip(),
+            "mood": mood,
+            "activity": activity,
+            "created_at": datetime.datetime.now(datetime.timezone.utc)
+        }
+
+        try:
+            self.diary_col.update_one(
+                {"date_str": target_date},
+                {"$set": doc},
+                upsert=True
+            )
+            return doc
+        except Exception as e:
+            print(f"Error saving diary entry: {e}")
+            return doc
+
+    def get_today_diary(self, date_str: Optional[str] = None) -> Optional[Dict[str, Any]]:
+        """Fetches the diary entry for today or specified date string."""
+        if self.diary_col is None:
+            return None
+        target_date = date_str or datetime.datetime.now().strftime("%Y-%m-%d")
+        try:
+            doc = self.diary_col.find_one({"date_str": target_date})
+            if doc and "_id" in doc:
+                doc["_id"] = str(doc["_id"])
+            return doc
+        except Exception:
+            return None
+
+    def get_diary_entries(self, limit: int = 15) -> List[Dict[str, Any]]:
+        """Retrieves chronological diary entries history."""
+        if self.diary_col is None:
+            return []
+        try:
+            cursor = self.diary_col.find().sort("date_str", DESCENDING).limit(limit)
+            entries = []
+            for doc in cursor:
+                if "_id" in doc:
+                    doc["_id"] = str(doc["_id"])
+                entries.append(doc)
+            return entries
+        except Exception:
+            return []
 
 
 # Singleton accessor

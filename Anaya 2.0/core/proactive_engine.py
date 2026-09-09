@@ -81,6 +81,92 @@ class ProactiveEngine:
                 return t
         return None
 
+    def mark_thread_checked(self, thread_id: str):
+        """Marks a thread as checked in."""
+        try:
+            from bson import ObjectId
+            db_manager.threads_col.update_one(
+                {"_id": ObjectId(thread_id)},
+                {"$inc": {"check_in_count": 1}, "$set": {"last_checked_at": datetime.datetime.now(datetime.timezone.utc)}}
+            )
+        except Exception:
+            pass
+
+    def get_proactive_checkin(self) -> Dict[str, Any]:
+        """
+        Evaluates whether Anaya has a proactive greeting or friend check-in
+        to display when the user loads the app or starts a session.
+        """
+        now = datetime.datetime.now()
+        hour = now.hour
+
+        # 1. Check for active life thread follow-up
+        pending = self.get_pending_checkin()
+        if pending:
+            topic = pending.get("topic", "")
+            context = pending.get("context", "")
+            hint = pending.get("follow_up_hint", "")
+            thread_id = str(pending.get("_id", ""))
+
+            greeting = f"Hey Arpit! Was just thinking about your {topic}... how did it go?"
+            if hint:
+                greeting = f"Hey Arpit! {hint}"
+
+            return {
+                "has_proactive_msg": True,
+                "type": "thread_checkin",
+                "greeting": greeting,
+                "suggested_reply": f"It went well! Let me tell you about it.",
+                "topic": topic,
+                "thread_id": thread_id
+            }
+
+        # 2. Check elapsed time since last conversation
+        last_msg = db_manager.get_last_message()
+        if last_msg and last_msg.get("timestamp"):
+            last_ts = last_msg["timestamp"]
+            now_dt = datetime.datetime.now(datetime.timezone.utc) if getattr(last_ts, "tzinfo", None) else datetime.datetime.utcnow()
+            diff_hours = (now_dt - last_ts).total_seconds() / 3600.0
+
+            # If user has been away for more than 16 hours
+            if diff_hours >= 16:
+                if 5 <= hour < 11:
+                    return {
+                        "has_proactive_msg": True,
+                        "type": "morning_greeting",
+                        "greeting": "Good morning Arpit! ☀️ Ready for the day or need another 5 minutes?",
+                        "suggested_reply": "Good morning Anaya! Just having some chai.",
+                        "topic": "Morning check-in"
+                    }
+                elif 0 <= hour < 5:
+                    return {
+                        "has_proactive_msg": True,
+                        "type": "late_night_checkin",
+                        "greeting": "Arre, you're still awake at this hour? What's keeping you up?",
+                        "suggested_reply": "Just winding down and couldn't sleep.",
+                        "topic": "Late night company"
+                    }
+                elif diff_hours >= 48:
+                    days = int(diff_hours // 24)
+                    return {
+                        "has_proactive_msg": True,
+                        "type": "absence_checkin",
+                        "greeting": f"Hey! It's been {days} days since we talked... where were you lost yaar?",
+                        "suggested_reply": "Hey! Was super busy with work.",
+                        "topic": "Catching up"
+                    }
+                else:
+                    return {
+                        "has_proactive_msg": True,
+                        "type": "casual_reachout",
+                        "greeting": "Hey Arpit! Hope your day is going smoothly. Taking a quick breather?",
+                        "suggested_reply": "Hey Anaya! Yeah, just taking a quick break.",
+                        "topic": "Casual greeting"
+                    }
+
+        # No proactive message needed if talked very recently
+        return {"has_proactive_msg": False}
+
     def generate_proactive_prompt(self, is_session_start: bool = False) -> str:
         """
         Injects instructions for Anaya to bring up an open thread naturally.
@@ -104,3 +190,4 @@ class ProactiveEngine:
 
 # Singleton instance
 proactive_engine = ProactiveEngine()
+

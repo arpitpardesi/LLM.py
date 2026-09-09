@@ -74,6 +74,13 @@
 
       <!-- Right Action Bar -->
       <div class="header-right">
+        <!-- Affinity & Bond Pill -->
+        <div class="status-pill affinity-pill" id="affinity-pill" role="button" tabindex="0" title="Relationship Affinity & Bond Level">
+          <span class="affinity-icon" id="affinity-icon">💖</span>
+          <span class="affinity-text" id="affinity-title">Close Confidante</span>
+          <span class="affinity-lvl-badge" id="affinity-lvl">Lv. 3</span>
+        </div>
+
         <!-- Live Status Pill -->
         <div class="living-pill" id="living-pill" title="Current state">
           <span class="live-badge-dot"></span>
@@ -123,6 +130,22 @@
       <!-- ================= VIEW 1: CHAT WORKSPACE ================= -->
       <section class="view-panel active-view" id="view-chat">
         <main class="chat-workspace">
+          <!-- Proactive Greeting / Thought Banner -->
+          <div class="proactive-banner hidden" id="proactive-banner">
+            <div class="proactive-sparkle">✨</div>
+            <div class="proactive-content">
+              <div class="proactive-header-line">
+                <span class="proactive-tag" id="proactive-tag">Anaya reached out</span>
+                <span class="proactive-topic" id="proactive-topic"></span>
+              </div>
+              <p class="proactive-text" id="proactive-banner-text">Hey Arpit! Just wondering how your day went...</p>
+            </div>
+            <div class="proactive-actions">
+              <button class="proactive-reply-btn" id="btn-proactive-reply">Reply: <span id="proactive-reply-chip">Hey Anaya!</span></button>
+              <button class="proactive-dismiss-btn" id="btn-proactive-dismiss" title="Dismiss banner" aria-label="Dismiss">✕</button>
+            </div>
+          </div>
+
           <!-- Chat Messages Container -->
           <div class="messages-container" id="messages-container">
             <!-- Welcome Hero -->
@@ -180,6 +203,9 @@
             ></textarea>
 
             <div class="capsule-actions">
+              <button class="capsule-btn activities-btn" id="btn-open-activities" title="Play a Game or Music with Anaya (Would You Rather, Songs, 20Q)" aria-label="Activities">
+                <span class="sparkle-icon">✨</span>
+              </button>
               <button class="capsule-btn undo-btn" id="btn-undo-turn" title="Undo last message turn" aria-label="Undo last turn">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <polyline points="1 4 1 10 7 10"></polyline>
@@ -1109,7 +1135,7 @@
     </div>
   </aside>
 
-  <!-- 5. Personal Journal Modal -->
+  <!-- 5. Personal Journal Modal (Chronological Secret Vault) -->
   <dialog class="diary-modal" id="diary-modal">
     <div class="diary-cover">
       <div class="diary-header">
@@ -1118,14 +1144,19 @@
             <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
             <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
           </svg>
-          <span>Personal Journal</span>
+          <span>Anaya's Secret Journal</span>
+        </div>
+        <div class="diary-nav-tabs">
+          <button class="diary-tab-btn active" id="btn-diary-tab-today">Today</button>
+          <button class="diary-tab-btn" id="btn-diary-tab-archive">Past Entries 📚</button>
         </div>
         <button class="close-dialog-btn" id="btn-close-diary" aria-label="Close modal">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
         </button>
       </div>
 
-      <div class="diary-paper">
+      <!-- Today's Live Parchment View -->
+      <div class="diary-paper" id="diary-today-view">
         <div class="diary-date" id="diary-date-display">Reflections & Notes</div>
         <div class="diary-content-body" id="diary-content-body">
           <p class="diary-loading">Retrieving journal entry...</p>
@@ -1133,8 +1164,162 @@
         <div class="diary-signature" id="diary-signature-name">— Anaya</div>
       </div>
 
+      <!-- Chronological Past Archive View -->
+      <div class="diary-archive-view hidden" id="diary-archive-view">
+        <div class="diary-archive-list" id="diary-archive-list">
+          <p class="diary-empty-msg">No archived entries yet.</p>
+        </div>
+      </div>
+
       <div class="diary-footer">
-        <button class="secondary-btn" id="btn-refresh-diary">Write a Fresh Reflection</button>
+        <button class="secondary-btn" id="btn-refresh-diary">Write a Fresh Reflection ✨</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- 6. Affinity & Bond Progress Modal -->
+  <dialog class="affinity-modal" id="affinity-modal">
+    <div class="affinity-card">
+      <div class="affinity-modal-header">
+        <div class="affinity-title-row">
+          <span class="affinity-hero-icon" id="affinity-modal-icon">💖</span>
+          <div>
+            <h3 id="affinity-modal-title">Close Confidante</h3>
+            <p class="affinity-subtext">Relationship Bond Level <span id="affinity-modal-lvl">3</span> of 4</p>
+          </div>
+        </div>
+        <button class="close-dialog-btn" id="btn-close-affinity" aria-label="Close modal">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+
+      <!-- Progress to next tier -->
+      <div class="affinity-progress-box">
+        <div class="progress-labels">
+          <span>Bond Intimacy XP</span>
+          <span id="affinity-xp-text">240 / 400 XP</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" id="affinity-progress-fill" style="width: 60%;"></div>
+        </div>
+        <p class="affinity-perk-hint" id="affinity-perk-hint">Unlocked: Vulnerable late-night talks, emotional harbor, deep personal secrets.</p>
+      </div>
+
+      <!-- Milestones Grid -->
+      <div class="affinity-stats-grid">
+        <div class="affinity-stat-card">
+          <span class="stat-num" id="affinity-stat-turns">128</span>
+          <span class="stat-lbl">Messages Exchanged</span>
+        </div>
+        <div class="affinity-stat-card">
+          <span class="stat-num" id="affinity-stat-streak">🔥 3</span>
+          <span class="stat-lbl">Daily Streak</span>
+        </div>
+        <div class="affinity-stat-card">
+          <span class="stat-num" id="affinity-stat-memories">14</span>
+          <span class="stat-lbl">Facts Remembered</span>
+        </div>
+        <div class="affinity-stat-card">
+          <span class="stat-num" id="affinity-stat-days">5</span>
+          <span class="stat-lbl">Days Known</span>
+        </div>
+      </div>
+
+      <!-- All Tiers Road -->
+      <div class="affinity-tiers-list">
+        <h4>Relationship Milestones</h4>
+        <div class="tier-step" id="tier-step-1">
+          <span class="tier-ico">🌱</span>
+          <div class="tier-info">
+            <strong>Level 1: Warm Acquaintance</strong>
+            <p>Casual daily chat, friendly banter, getting to know each other.</p>
+          </div>
+        </div>
+        <div class="tier-step" id="tier-step-2">
+          <span class="tier-ico">🤝</span>
+          <div class="tier-info">
+            <strong>Level 2: Good Friend</strong>
+            <p>Playful teasing, spontaneous updates, inside jokes.</p>
+          </div>
+        </div>
+        <div class="tier-step" id="tier-step-3">
+          <span class="tier-ico">💖</span>
+          <div class="tier-info">
+            <strong>Level 3: Close Confidante</strong>
+            <p>Vulnerable late-night talks, emotional comfort, mutual secrets.</p>
+          </div>
+        </div>
+        <div class="tier-step" id="tier-step-4">
+          <span class="tier-ico">✨</span>
+          <div class="tier-info">
+            <strong>Level 4: Inseparable Companion</strong>
+            <p>Intuitive unspoken bond, soulmate-level intimacy, boundless warmth.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- 7. Interactive Companion Activities Modal -->
+  <dialog class="activities-modal" id="activities-modal">
+    <div class="activities-card">
+      <div class="activities-header">
+        <div class="activities-title-group">
+          <span class="activities-icon">✨</span>
+          <div>
+            <h3>Companion Activities & Games</h3>
+            <p class="activities-sub">Bond, play, or share a quiet moment together</p>
+          </div>
+        </div>
+        <button class="close-dialog-btn" id="btn-close-activities" aria-label="Close modal">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+
+      <div class="activities-grid">
+        <!-- 1. Would You Rather -->
+        <div class="activity-opt-card" data-activity-id="would_you_rather">
+          <div class="act-card-top">
+            <span class="act-emoji">🎭</span>
+            <span class="act-badge">Game</span>
+          </div>
+          <h4>Would You Rather?</h4>
+          <p>Hilarious, bizarre, or playfully relatable Indian dilemmas with spirited banter.</p>
+          <button class="primary-btn act-launch-btn">Play Now →</button>
+        </div>
+
+        <!-- 2. 20 Questions -->
+        <div class="activity-opt-card" data-activity-id="twenty_questions">
+          <div class="act-card-top">
+            <span class="act-emoji">🔮</span>
+            <span class="act-badge">Game</span>
+          </div>
+          <h4>20 Questions</h4>
+          <p>Anaya picks a secret everyday item or thought. Can you guess it in 20 questions?</p>
+          <button class="primary-btn act-launch-btn">Play Now →</button>
+        </div>
+
+        <!-- 3. Chai & Song Vibe -->
+        <div class="activity-opt-card" data-activity-id="chai_song">
+          <div class="act-card-top">
+            <span class="act-emoji">☕🎵</span>
+            <span class="act-badge">Music</span>
+          </div>
+          <h4>Chai & Music Vibe</h4>
+          <p>Anaya shares a song she loves right now and the nostalgic story behind it.</p>
+          <button class="primary-btn act-launch-btn">Listen →</button>
+        </div>
+
+        <!-- 4. Midnight Deep Talk -->
+        <div class="activity-opt-card" data-activity-id="deep_talk">
+          <div class="act-card-top">
+            <span class="act-emoji">🌙</span>
+            <span class="act-badge">Bonding</span>
+          </div>
+          <h4>Midnight Deep Talk</h4>
+          <p>Soulful questions about memories, dreams, fears, and the universe.</p>
+          <button class="primary-btn act-launch-btn">Talk →</button>
+        </div>
       </div>
     </div>
   </dialog>

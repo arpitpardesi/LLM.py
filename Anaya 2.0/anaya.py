@@ -99,8 +99,8 @@ def chat_turn(user_input: str, session_id: str) -> str:
     except Exception:
         pass
 
-    # 3. Assemble chat context
-    messages = memory_engine.build_chat_context(session_id=session_id)
+    # 3. Assemble chat context with episodic memory
+    messages = memory_engine.build_chat_context(session_id=session_id, current_query=user_input)
 
     # 4. Stream response from Ollama
     start_anaya_stream()

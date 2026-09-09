@@ -20,10 +20,10 @@ class MemoryEngine:
     def __init__(self):
         self.config = config.llm
 
-    def build_chat_context(self, session_id: str) -> List[Dict[str, str]]:
+    def build_chat_context(self, session_id: str, current_query: Optional[str] = None) -> List[Dict[str, str]]:
         """
         Builds the complete message payload for Ollama:
-        1. System message: Persona + Temporal Awareness + User Memories + Style
+        1. System message: Persona + Temporal Awareness + Bond + Memories + Episodic Recall + Style
         2. Sliding window of recent message history
         """
         # Fetch last message to determine elapsed time
@@ -36,7 +36,8 @@ class MemoryEngine:
         # Build dynamic system prompt
         system_prompt = persona_engine.build_system_prompt(
             last_interaction_time=last_time,
-            memories=memories
+            memories=memories,
+            current_query=current_query
         )
 
         messages: List[Dict[str, str]] = [

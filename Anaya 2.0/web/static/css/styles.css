@@ -2363,3 +2363,566 @@ dialog::backdrop {
   }
 }
 
+/* ==========================================================================
+   Affinity & Relationship Bond System Styles
+   ========================================================================== */
+
+.affinity-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 12px;
+  background: linear-gradient(135deg, rgba(236, 72, 153, 0.12), rgba(168, 85, 247, 0.12));
+  border: 1px solid rgba(236, 72, 153, 0.3);
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  font-size: 0.82rem;
+  color: #fbcfe8;
+  user-select: none;
+}
+
+.affinity-pill:hover {
+  background: linear-gradient(135deg, rgba(236, 72, 153, 0.22), rgba(168, 85, 247, 0.22));
+  border-color: rgba(236, 72, 153, 0.5);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(236, 72, 153, 0.2);
+}
+
+.affinity-lvl-badge {
+  background: rgba(236, 72, 153, 0.25);
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #f472b6;
+}
+
+.affinity-modal {
+  border: none;
+  background: transparent;
+  padding: 0;
+  max-width: 540px;
+  width: 92vw;
+  margin: auto;
+}
+
+.affinity-modal::backdrop {
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(8px);
+}
+
+.affinity-card {
+  background: var(--bg-surface-1);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-lg);
+  padding: 1.75rem;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+  color: var(--text-primary);
+}
+
+.affinity-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1.5rem;
+}
+
+.affinity-title-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.affinity-hero-icon {
+  font-size: 2.2rem;
+  line-height: 1;
+  filter: drop-shadow(0 0 10px rgba(236, 72, 153, 0.4));
+}
+
+.affinity-title-row h3 {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.affinity-subtext {
+  font-size: 0.82rem;
+  color: var(--text-dim);
+  margin-top: 3px;
+}
+
+.affinity-progress-box {
+  background: var(--bg-surface-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 1.1rem;
+  margin-bottom: 1.25rem;
+}
+
+.progress-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.progress-track {
+  width: 100%;
+  height: 8px;
+  background: var(--bg-surface-3);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #ec4899, #a855f7, #6366f1);
+  border-radius: 4px;
+  transition: width 0.6s ease;
+}
+
+.affinity-perk-hint {
+  font-size: 0.8rem;
+  color: #f472b6;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.affinity-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 1.5rem;
+}
+
+@media (max-width: 500px) {
+  .affinity-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.affinity-stat-card {
+  background: var(--bg-surface-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 10px 8px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.affinity-stat-card .stat-num {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.affinity-stat-card .stat-lbl {
+  font-size: 0.68rem;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.affinity-tiers-list {
+  border-top: 1px solid var(--border-subtle);
+  padding-top: 1rem;
+}
+
+.affinity-tiers-list h4 {
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin-bottom: 10px;
+}
+
+.tier-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  margin-bottom: 6px;
+  transition: background var(--transition-fast);
+}
+
+.tier-step.active-tier {
+  background: rgba(236, 72, 153, 0.1);
+  border: 1px solid rgba(236, 72, 153, 0.25);
+}
+
+.tier-ico {
+  font-size: 1.25rem;
+  line-height: 1.2;
+}
+
+.tier-info strong {
+  display: block;
+  font-size: 0.86rem;
+  color: var(--text-primary);
+}
+
+.tier-info p {
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  margin: 2px 0 0 0;
+  line-height: 1.4;
+}
+
+/* ==========================================================================
+   Proactive Greeting Banner Styles
+   ========================================================================== */
+
+.proactive-banner {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(168, 85, 247, 0.15));
+  border: 1px solid rgba(99, 102, 241, 0.35);
+  border-radius: var(--radius-md);
+  margin: 0.75rem 1.5rem 0.5rem 1.5rem;
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  animation: slideDown 0.35s ease;
+  backdrop-filter: blur(8px);
+}
+
+.proactive-banner.hidden {
+  display: none !important;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.proactive-sparkle {
+  font-size: 1.3rem;
+  flex-shrink: 0;
+  filter: drop-shadow(0 0 8px rgba(99, 102, 241, 0.5));
+}
+
+.proactive-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.proactive-header-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+
+.proactive-tag {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: #a5b4fc;
+}
+
+.proactive-topic {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+}
+
+.proactive-text {
+  font-size: 0.88rem;
+  color: var(--text-primary);
+  margin: 0;
+  line-height: 1.45;
+}
+
+.proactive-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.proactive-reply-btn {
+  background: rgba(99, 102, 241, 0.25);
+  border: 1px solid rgba(99, 102, 241, 0.45);
+  color: #e0e7ff;
+  border-radius: 9999px;
+  padding: 5px 12px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.proactive-reply-btn:hover {
+  background: var(--accent-indigo);
+  color: #ffffff;
+  box-shadow: 0 0 12px rgba(99, 102, 241, 0.4);
+}
+
+.proactive-dismiss-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 0.95rem;
+  padding: 4px 6px;
+  border-radius: 4px;
+  transition: color var(--transition-fast);
+}
+
+.proactive-dismiss-btn:hover {
+  color: var(--text-primary);
+}
+
+/* ==========================================================================
+   Interactive Companion Activities Modal Styles
+   ========================================================================== */
+
+.activities-btn {
+  color: #fbbf24 !important;
+  border-color: rgba(251, 191, 36, 0.3) !important;
+}
+
+.activities-btn:hover {
+  background: rgba(251, 191, 36, 0.15) !important;
+  border-color: rgba(251, 191, 36, 0.6) !important;
+  box-shadow: 0 0 10px rgba(251, 191, 36, 0.3) !important;
+}
+
+.activities-modal {
+  border: none;
+  background: transparent;
+  padding: 0;
+  max-width: 620px;
+  width: 94vw;
+  margin: auto;
+}
+
+.activities-modal::backdrop {
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(8px);
+}
+
+.activities-card {
+  background: var(--bg-surface-1);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-lg);
+  padding: 1.75rem;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+  color: var(--text-primary);
+}
+
+.activities-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1.5rem;
+}
+
+.activities-title-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.activities-icon {
+  font-size: 2rem;
+  filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.5));
+}
+
+.activities-title-group h3 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.activities-sub {
+  font-size: 0.82rem;
+  color: var(--text-dim);
+  margin-top: 3px;
+}
+
+.activities-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+
+@media (max-width: 550px) {
+  .activities-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.activity-opt-card {
+  background: var(--bg-surface-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: all var(--transition-fast);
+  cursor: pointer;
+}
+
+.activity-opt-card:hover {
+  border-color: var(--accent-indigo);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+  background: var(--bg-surface-3);
+}
+
+.act-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.act-emoji {
+  font-size: 1.6rem;
+}
+
+.act-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 2px 7px;
+  border-radius: 9999px;
+  background: rgba(99, 102, 241, 0.15);
+  color: #a5b4fc;
+}
+
+.activity-opt-card h4 {
+  font-size: 0.98rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 6px 0;
+}
+
+.activity-opt-card p {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  line-height: 1.45;
+  margin: 0 0 12px 0;
+  flex: 1;
+}
+
+.act-launch-btn {
+  width: 100%;
+  padding: 7px 12px;
+  font-size: 0.8rem;
+  border-radius: var(--radius-sm);
+  background: rgba(99, 102, 241, 0.2);
+  color: #c7d2fe;
+  border: 1px solid rgba(99, 102, 241, 0.4);
+}
+
+.activity-opt-card:hover .act-launch-btn {
+  background: var(--accent-indigo);
+  color: #ffffff;
+}
+
+/* ==========================================================================
+   Chronological Secret Journal Archive Styles
+   ========================================================================== */
+
+.diary-nav-tabs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 3px;
+  border-radius: var(--radius-sm);
+}
+
+.diary-tab-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  padding: 4px 10px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.diary-tab-btn.active {
+  background: rgba(236, 72, 153, 0.2);
+  color: #fbcfe8;
+}
+
+.diary-archive-view {
+  min-height: 220px;
+  max-height: 380px;
+  overflow-y: auto;
+  padding: 10px 14px;
+}
+
+.diary-archive-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.diary-archive-card {
+  background: rgba(30, 24, 38, 0.6);
+  border: 1px solid rgba(236, 72, 153, 0.2);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  transition: all var(--transition-fast);
+}
+
+.diary-archive-card:hover {
+  border-color: rgba(236, 72, 153, 0.4);
+  background: rgba(30, 24, 38, 0.9);
+}
+
+.diary-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.diary-card-date {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #f472b6;
+}
+
+.diary-card-mood {
+  font-size: 0.72rem;
+  padding: 2px 7px;
+  border-radius: 9999px;
+  background: rgba(236, 72, 153, 0.15);
+  color: #fbcfe8;
+}
+
+.diary-card-body {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 0.86rem;
+  color: #fdf2f8;
+  line-height: 1.6;
+  margin: 0;
+  font-style: italic;
+}
+
+.diary-empty-msg {
+  text-align: center;
+  color: var(--text-dim);
+  font-size: 0.86rem;
+  padding: 2rem 0;
+}
+
+

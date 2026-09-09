@@ -40,6 +40,9 @@ class AnayaApp {
     this.threadsDrawer = document.getElementById('threads-drawer');
     this.diaryModal = document.getElementById('diary-modal');
     this.settingsModal = document.getElementById('settings-modal');
+    this.affinityModal = document.getElementById('affinity-modal');
+    this.activitiesModal = document.getElementById('activities-modal');
+    this.proactiveBanner = document.getElementById('proactive-banner');
     this.onboardingModal = document.getElementById('onboarding-modal');
     this.resetConfirmModal = document.getElementById('reset-confirm-modal');
     this.clearMemoriesModal = document.getElementById('clear-memories-modal');
@@ -73,12 +76,12 @@ class AnayaApp {
     this.bindEvents();
     this.setupAudioUnlocker();
     this.setupSpeechRecognition();
-    this.loadHistory();
-    this.loadPersonaData();
+    this.loadChatHistory();
     this.refreshStatus();
-    this.updateVoiceBadge();
+    this.checkProactiveGreeting();
+    this.initPersonalityBuilder();
 
-    // Poll status periodically to keep Anaya's living activity refreshed
+    // Auto refresh status every 30 seconds
     setInterval(() => this.refreshStatus(), 30000);
   }
 
@@ -257,12 +260,84 @@ class AnayaApp {
         }
       });
     }
+    if (this.affinityModal) {
+      this.affinityModal.addEventListener('click', (e) => {
+        if (e.target === this.affinityModal) {
+          this.affinityModal.close();
+        }
+      });
+    }
+    if (this.activitiesModal) {
+      this.activitiesModal.addEventListener('click', (e) => {
+        if (e.target === this.activitiesModal) {
+          this.activitiesModal.close();
+        }
+      });
+    }
     if (this.clearMemoriesModal) {
       this.clearMemoriesModal.addEventListener('click', (e) => {
         if (e.target === this.clearMemoriesModal) {
           this.clearMemoriesModal.close();
         }
       });
+    }
+
+    // Affinity pill click -> opens relationship modal
+    const affinityPill = document.getElementById('affinity-pill');
+    if (affinityPill) {
+      affinityPill.addEventListener('click', () => this.openAffinityModal());
+    }
+
+    const btnCloseAffinity = document.getElementById('btn-close-affinity');
+    if (btnCloseAffinity) {
+      btnCloseAffinity.addEventListener('click', () => this.affinityModal?.close());
+    }
+
+    // Activities button & modal
+    const btnOpenActivities = document.getElementById('btn-open-activities');
+    if (btnOpenActivities) {
+      btnOpenActivities.addEventListener('click', () => this.openActivitiesModal());
+    }
+
+    const btnCloseActivities = document.getElementById('btn-close-activities');
+    if (btnCloseActivities) {
+      btnCloseActivities.addEventListener('click', () => this.activitiesModal?.close());
+    }
+
+    document.querySelectorAll('.activity-opt-card').forEach((card) => {
+      card.addEventListener('click', () => {
+        const actId = card.getAttribute('data-activity-id');
+        if (actId) {
+          this.startActivity(actId);
+        }
+      });
+    });
+
+    // Proactive Banner buttons
+    const btnProactiveReply = document.getElementById('btn-proactive-reply');
+    if (btnProactiveReply) {
+      btnProactiveReply.addEventListener('click', () => {
+        const chip = document.getElementById('proactive-reply-chip');
+        const text = chip ? chip.textContent.trim() : '';
+        if (text) {
+          this.chatInput.value = text;
+          this.sendMessage();
+        }
+        this.dismissProactiveBanner(true);
+      });
+    }
+
+    const btnProactiveDismiss = document.getElementById('btn-proactive-dismiss');
+    if (btnProactiveDismiss) {
+      btnProactiveDismiss.addEventListener('click', () => this.dismissProactiveBanner(false));
+    }
+
+    // Diary Tabs
+    const btnDiaryToday = document.getElementById('btn-diary-tab-today');
+    const btnDiaryArchive = document.getElementById('btn-diary-tab-archive');
+    if (btnDiaryToday && btnDiaryArchive) {
+      btnDiaryToday.addEventListener('click', () => this.switchDiaryTab('today'));
+      btnDiaryArchive.addEventListener('click', () => this.switchDiaryTab('archive'));
     }
 
     // Living pill click -> opens settings / mood
@@ -731,6 +806,17 @@ class AnayaApp {
       if (totalMsgs) totalMsgs.textContent = stats.total_messages || 0;
       if (daysKnown) daysKnown.textContent = stats.days_known || 1;
       if (memCount) memCount.textContent = stats.total_memories || 0;
+
+      // Update Affinity Pill in header
+      if (data.affinity) {
+        const aff = data.affinity;
+        const pillIcon = document.getElementById('affinity-icon');
+        const pillTitle = document.getElementById('affinity-title');
+        const pillLvl = document.getElementById('affinity-lvl');
+        if (pillIcon) pillIcon.textContent = aff.icon || '💖';
+        if (pillTitle) pillTitle.textContent = aff.title || 'Close Confidante';
+        if (pillLvl) pillLvl.textContent = `Lv. ${aff.level || 3}`;
+      }
 
       // Update model dropdown selection and RAM status
       const modelSelect = document.getElementById('model-select');
@@ -1801,24 +1887,238 @@ class AnayaApp {
   }
 
   // =========================================================================
-  // Secret Diary Modal
+  // Secret Diary Modal & Chronological Vault
   // =========================================================================
 
   async openDiaryModal() {
-    this.diaryModal.showModal();
+    if (!this.diaryModal) return;
+    try {
+      this.diaryModal.showModal();
+    } catch (_) {
+      this.diaryModal.setAttribute('open', '');
+    }
+    this.switchDiaryTab('today');
     await this.fetchDiary(false);
+  }
+
+  switchDiaryTab(tabName) {
+    const todayTab = document.getElementById('btn-diary-tab-today');
+    const archiveTab = document.getElementById('btn-diary-tab-archive');
+    const todayView = document.getElementById('diary-today-view');
+    const archiveView = document.getElementById('diary-archive-view');
+    const refreshBtn = document.getElementById('btn-refresh-diary');
+
+    if (tabName === 'today') {
+      todayTab?.classList.add('active');
+      archiveTab?.classList.remove('active');
+      todayView?.classList.remove('hidden');
+      archiveView?.classList.add('hidden');
+      if (refreshBtn) refreshBtn.style.display = 'inline-block';
+    } else {
+      todayTab?.classList.remove('active');
+      archiveTab?.classList.add('active');
+      todayView?.classList.add('hidden');
+      archiveView?.classList.remove('hidden');
+      if (refreshBtn) refreshBtn.style.display = 'none';
+      this.fetchDiaryHistory();
+    }
   }
 
   async fetchDiary(forceRefresh = false) {
     const bodyEl = document.getElementById('diary-content-body');
-    bodyEl.innerHTML = '<p class="diary-loading">Anaya is writing in her personal journal...</p>';
+    const dateEl = document.getElementById('diary-date-display');
+    if (bodyEl) {
+      bodyEl.innerHTML = '<p class="diary-loading">Anaya is writing in her personal journal...</p>';
+    }
 
     try {
-      const res = await fetch('/api/diary');
+      const url = forceRefresh ? '/api/diary?force=true' : '/api/diary';
+      const res = await fetch(url);
       const data = await res.json();
-      bodyEl.innerHTML = `<p>${(data.diary_entry || '').replace(/\n/g, '<br>')}</p>`;
+      if (bodyEl) {
+        bodyEl.innerHTML = `<p>${(data.diary_entry || '').replace(/\n/g, '<br>')}</p>`;
+      }
+      if (dateEl && data.date) {
+        dateEl.textContent = data.date;
+      }
     } catch (e) {
-      bodyEl.innerHTML = '<p>Could not open Anaya’s diary right now.</p>';
+      if (bodyEl) {
+        bodyEl.innerHTML = '<p>Could not open Anaya’s diary right now.</p>';
+      }
+    }
+  }
+
+  async fetchDiaryHistory() {
+    const listEl = document.getElementById('diary-archive-list');
+    if (!listEl) return;
+    listEl.innerHTML = '<p class="diary-loading">Retrieving past reflections...</p>';
+
+    try {
+      const res = await fetch('/api/diary/history');
+      const data = await res.json();
+      const entries = data.entries || [];
+      if (entries.length === 0) {
+        listEl.innerHTML = '<p class="diary-empty-msg">No archived entries yet. Chat with Anaya and check back this evening!</p>';
+        return;
+      }
+
+      listEl.innerHTML = entries.map((entry) => `
+        <div class="diary-archive-card">
+          <div class="diary-card-header">
+            <span class="diary-card-date">📅 ${entry.display_date || entry.date_str}</span>
+            <span class="diary-card-mood">${entry.mood || 'Thoughtful'}</span>
+          </div>
+          <p class="diary-card-body">${(entry.content || '').replace(/\n/g, '<br>')}</p>
+        </div>
+      `).join('');
+    } catch (e) {
+      listEl.innerHTML = '<p class="diary-empty-msg">Failed to load past entries.</p>';
+    }
+  }
+
+  // =========================================================================
+  // Affinity & Relationship Progression
+  // =========================================================================
+
+  async openAffinityModal() {
+    if (!this.affinityModal) return;
+    try {
+      this.affinityModal.showModal();
+    } catch (_) {
+      this.affinityModal.setAttribute('open', '');
+    }
+    await this.fetchAffinity();
+  }
+
+  async fetchAffinity() {
+    try {
+      const res = await fetch('/api/affinity');
+      if (!res.ok) return;
+      const aff = await res.json();
+
+      const modalTitle = document.getElementById('affinity-modal-title');
+      const modalLvl = document.getElementById('affinity-modal-lvl');
+      const modalIcon = document.getElementById('affinity-modal-icon');
+      const xpText = document.getElementById('affinity-xp-text');
+      const progressFill = document.getElementById('affinity-progress-fill');
+      const perkHint = document.getElementById('affinity-perk-hint');
+      const statTurns = document.getElementById('affinity-stat-turns');
+      const statStreak = document.getElementById('affinity-stat-streak');
+      const statMemories = document.getElementById('affinity-stat-memories');
+      const statDays = document.getElementById('affinity-stat-days');
+
+      if (modalTitle) modalTitle.textContent = aff.title || 'Close Confidante';
+      if (modalLvl) modalLvl.textContent = aff.level || 3;
+      if (modalIcon) modalIcon.textContent = aff.icon || '💖';
+      if (xpText) xpText.textContent = `${aff.xp} / ${aff.next_level_xp} XP (${aff.progress_pct}%)`;
+      if (progressFill) progressFill.style.width = `${aff.progress_pct}%`;
+      if (perkHint) perkHint.textContent = `Unlocked: ${aff.perk}`;
+      if (statTurns) statTurns.textContent = aff.total_turns || 0;
+      if (statStreak) statStreak.textContent = `🔥 ${aff.streak || 1}`;
+      if (statMemories) statMemories.textContent = aff.memories_count || 0;
+      if (statDays) statDays.textContent = aff.active_days || 1;
+
+      // Highlight active tier row
+      for (let i = 1; i <= 4; i++) {
+        const row = document.getElementById(`tier-step-${i}`);
+        if (row) {
+          row.classList.toggle('active-tier', i === aff.level);
+        }
+      }
+    } catch (e) {
+      console.warn('Could not load affinity:', e);
+    }
+  }
+
+  // =========================================================================
+  // Proactive Greetings & Reach-outs
+  // =========================================================================
+
+  async checkProactiveGreeting() {
+    try {
+      const res = await fetch('/api/proactive-check');
+      if (!res.ok) return;
+      const data = await res.json();
+
+      if (data && data.has_proactive_msg && data.greeting) {
+        this.activeProactiveThreadId = data.thread_id || null;
+        const banner = document.getElementById('proactive-banner');
+        const textEl = document.getElementById('proactive-banner-text');
+        const topicEl = document.getElementById('proactive-topic');
+        const chipEl = document.getElementById('proactive-reply-chip');
+
+        if (textEl) textEl.textContent = data.greeting;
+        if (topicEl) topicEl.textContent = data.topic ? `• ${data.topic}` : '';
+        if (chipEl) chipEl.textContent = data.suggested_reply || 'Hey Anaya!';
+        if (banner) banner.classList.remove('hidden');
+      }
+    } catch (e) {
+      // Non-blocking
+    }
+  }
+
+  async dismissProactiveBanner(wasReplied = false) {
+    const banner = document.getElementById('proactive-banner');
+    if (banner) banner.classList.add('hidden');
+
+    if (this.activeProactiveThreadId) {
+      try {
+        await fetch('/api/proactive-check/ack', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ thread_id: this.activeProactiveThreadId, replied: wasReplied })
+        });
+      } catch (_) {}
+      this.activeProactiveThreadId = null;
+    }
+  }
+
+  // =========================================================================
+  // Companion Interactive Activities
+  // =========================================================================
+
+  openActivitiesModal() {
+    if (!this.activitiesModal) return;
+    try {
+      this.activitiesModal.showModal();
+    } catch (_) {
+      this.activitiesModal.setAttribute('open', '');
+    }
+  }
+
+  delay(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  async startActivity(activityId) {
+    if (this.activitiesModal) {
+      this.activitiesModal.close();
+    }
+    this.switchTab('chat');
+
+    this.showToast('Launching activity with Anaya...', 'info', 2500);
+
+    try {
+      const res = await fetch('/api/activities/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ activity_id: activityId })
+      });
+      const data = await res.json();
+      if (data && data.starter_message) {
+        if (this.welcomeHero) {
+          this.welcomeHero.style.display = 'none';
+        }
+        const bursts = data.starter_message.split(' ||| ').map((b) => b.trim()).filter(Boolean);
+
+        for (const burst of bursts) {
+          this.appendMessageBubble('assistant', burst, new Date().toISOString());
+          await this.delay(350);
+        }
+        this.scrollToBottom();
+      }
+    } catch (e) {
+      this.showToast('Could not start activity: ' + e.message, 'danger');
     }
   }
 

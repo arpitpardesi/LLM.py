@@ -165,24 +165,30 @@ class PersonaEngine:
     def build_system_prompt(
         self,
         last_interaction_time: Optional[datetime.datetime] = None,
-        memories: Optional[List[Dict[str, Any]]] = None
+        memories: Optional[List[Dict[str, Any]]] = None,
+        current_query: Optional[str] = None
     ) -> str:
         """
         Assembles complete system instruction for Ollama:
         1. Base Persona (Anaya / Custom Companion)
         2. Real-World Temporal Context
         3. Living Routine & Current Activity
-        4. Current Persistent Mood & Emotional State
-        5. Proactive Friend Check-In (Open Life Threads)
-        6. Long-Term Narrative Memories & Relationship History
-        7. Strict Human Conversational Guidelines
+        4. Relationship Closeness & Bond Dynamic
+        5. Current Persistent Mood & Emotional State
+        6. Proactive Friend Check-In (Open Life Threads)
+        7. Long-Term Narrative Memories & Historical Facts
+        8. Episodic Recall from past conversations
+        9. Strict Human Conversational Guidelines
         """
         from core.life_engine import life_engine
         from core.mood_engine import mood_engine
         from core.proactive_engine import proactive_engine
+        from core.affinity_engine import affinity_engine
+        from core.semantic_memory import semantic_memory_engine
 
         temporal_section = self.build_temporal_context(last_interaction_time)
         life_section = life_engine.generate_life_prompt()
+        bond_section = affinity_engine.generate_bond_prompt()
         mood_section = mood_engine.generate_mood_prompt()
         proactive_section = proactive_engine.generate_proactive_prompt()
 
@@ -195,6 +201,10 @@ class PersonaEngine:
                     + "\n".join(facts_list)
                     + "\n(Naturally weave these into conversation when relevant. Do not recite them like a checklist.)\n\n"
                 )
+
+        episodic_section = ""
+        if current_query:
+            episodic_section = semantic_memory_engine.generate_episodic_prompt(current_query)
 
         behavioral_guidelines = (
             f"REAL HUMAN CONVERSATIONAL GUIDELINES:\n"
@@ -216,6 +226,7 @@ class PersonaEngine:
             "⸻",
             temporal_section,
             life_section,
+            bond_section,
             mood_section
         ]
 
@@ -225,6 +236,9 @@ class PersonaEngine:
         if memory_section:
             prompt_parts.extend(["⸻", memory_section])
 
+        if episodic_section:
+            prompt_parts.extend(["⸻", episodic_section])
+
         prompt_parts.extend(["⸻", behavioral_guidelines])
 
         return "\n\n".join(prompt_parts)
@@ -232,3 +246,4 @@ class PersonaEngine:
 
 # Singleton instance
 persona_engine = PersonaEngine()
+

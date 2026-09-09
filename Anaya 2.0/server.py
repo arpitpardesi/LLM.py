@@ -40,6 +40,9 @@ from core.life_engine import life_engine
 from core.mood_engine import mood_engine
 from core.proactive_engine import proactive_engine
 from core.voice_engine import voice_engine
+from core.affinity_engine import affinity_engine
+from core.activities_engine import activities_engine
+from core.semantic_memory import semantic_memory_engine
 
 app = FastAPI(title="Anaya 2.0 Web Companion", version="2.0.0")
 
@@ -195,7 +198,11 @@ async def get_status():
             "mood_name": mood_info.get("name", ""),
             "mood_desc": mood_info.get("desc", ""),
             "mood_key": mood_info.get("key", ""),
+            "mood_momentum": mood_info.get("momentum", 0.8),
+            "mood_intensity": mood_info.get("intensity", "moderate"),
+            "mood_trajectory": mood_info.get("trajectory", []),
         },
+        "affinity": affinity_engine.calculate_affinity(),
         "stats": stats,
         "open_threads_count": len(open_threads),
     }
@@ -245,8 +252,8 @@ async def chat_endpoint(payload: ChatRequest):
     except Exception:
         pass
 
-    # 3. Assemble chat context with capped sliding window
-    messages = memory_engine.build_chat_context(session_id=session_id)
+    # 3. Assemble chat context with capped sliding window and episodic memory
+    messages = memory_engine.build_chat_context(session_id=session_id, current_query=user_text)
 
     # 4. Generator function for SSE stream
     async def sse_generator():
@@ -389,23 +396,98 @@ async def resolve_thread(payload: ResolveThreadRequest):
     return {"success": ok}
 
 
+@app.get("/api/affinity")
+async def get_affinity():
+    """Returns Anaya & Arpit's relationship affinity level, streak, and perks."""
+    return affinity_engine.calculate_affinity()
+
+
+@app.get("/api/proactive-check")
+async def get_proactive_check():
+    """Evaluates whether Anaya has a proactive greeting or thread follow-up."""
+    return proactive_engine.get_proactive_checkin()
+
+
+@app.post("/api/proactive-check/ack")
+async def ack_proactive(payload: Dict[str, Any]):
+    """Acknowledges a proactive check-in thread."""
+    thread_id = payload.get("thread_id")
+    if thread_id:
+        proactive_engine.mark_thread_checked(thread_id)
+    return {"success": True}
+
+
+@app.get("/api/activities")
+async def get_activities():
+    """Lists available interactive companion mini-activities."""
+    return {"activities": activities_engine.list_activities()}
+
+
+class ActivityStartRequest(BaseModel):
+    activity_id: str
+
+
+@app.post("/api/activities/start")
+async def start_activity(payload: ActivityStartRequest):
+    """Starts an interactive mini-activity."""
+    result = activities_engine.start_activity(
+        activity_id=payload.activity_id,
+        companion_name=config.user.companion_name,
+        user_name=config.user.user_name
+    )
+    return result
+
+
 @app.get("/api/diary")
-async def get_diary():
-    """Generates Anaya's secret personal diary entry."""
-    recent = db_manager.load_recent_messages(limit=6)
+async def get_diary(force: bool = False):
+    """
+    Returns today's secret personal diary entry.
+    If not yet generated today, uses Ollama to synthesize reflections and archives it in MongoDB.
+    """
+    today_doc = db_manager.get_today_diary()
+    if today_doc and not force:
+        return {
+            "diary_entry": today_doc.get("content", ""),
+            "date": today_doc.get("display_date", ""),
+            "title": today_doc.get("title", ""),
+            "mood": today_doc.get("mood", ""),
+            "is_cached": True
+        }
+
+    recent = db_manager.load_recent_messages(limit=8)
     recent_summary = "\n".join([f"{m.get('role')}: {m.get('content')}" for m in recent])
     prompt = (
-        "Write a short, intimate personal diary entry as Anaya (27-28), writing in her private journal about Arpit (28) "
-        "and their bond. Reflect on how much she values having him in her life, recent moments, her quirks, "
+        f"Write a short, intimate personal diary entry as {config.user.companion_name} (27-28), "
+        f"writing in her private journal about {config.user.user_name} (28) and their bond. "
+        "Reflect on how much she values having him in her life, recent moments, her quirks, "
         "and how comfortable she feels around him.\n"
         f"Recent context:\n{recent_summary}\n\n"
         "Keep it heartfelt, poetic yet grounded, 1-2 paragraphs max."
     )
     entry = await asyncio.to_thread(llm_client.chat_sync, [{"role": "user", "content": prompt}], None, 0.7)
+    
+    activity = life_engine.get_current_activity().get("activity", "")
+    mood_name = mood_engine.get_current_mood().get("name", "Warm")
+    saved = db_manager.save_diary_entry(
+        entry=entry,
+        title=f"Reflections with {config.user.user_name}",
+        mood=mood_name,
+        activity=activity
+    )
     return {
         "diary_entry": entry,
-        "date": life_engine.get_current_activity().get("activity", "")
+        "date": saved.get("display_date", ""),
+        "title": saved.get("title", ""),
+        "mood": mood_name,
+        "is_cached": False
     }
+
+
+@app.get("/api/diary/history")
+async def get_diary_history():
+    """Retrieves chronological diary history entries."""
+    entries = db_manager.get_diary_entries(limit=15)
+    return {"entries": entries}
 
 
 @app.post("/api/mood")
