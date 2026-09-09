@@ -25,7 +25,16 @@ class AnayaApp {
     this.toastContainer = document.getElementById('toast-container');
     this.micBtn = document.getElementById('btn-mic');
     this.typingIndicator = document.getElementById('typing-indicator');
+    this.typingLabelText = document.getElementById('typing-label-text');
     this.welcomeHero = document.getElementById('welcome-hero');
+
+    // Realism & Conversational Cadence
+    this.realisticCadence = localStorage.getItem('anaya_realistic_cadence') !== 'false';
+    this.soundEffectsEnabled = localStorage.getItem('anaya_sound_effects') !== 'false';
+    this.audioCtx = null;
+    this.btnToggleCadence = document.getElementById('btn-toggle-cadence');
+    this.btnTogglePopSound = document.getElementById('btn-toggle-pop-sound');
+    this.cadenceStatusTag = document.getElementById('cadence-status-tag');
 
     // Status Elements
     this.statusActivity = document.getElementById('status-activity-text');
@@ -490,6 +499,30 @@ class AnayaApp {
         const fCompGender = document.getElementById('form-companion-gender');
         if (fCompGender) fCompGender.value = val;
         await this.savePersonaData();
+      });
+    }
+
+    // Conversational Realism Toggles
+    if (this.btnToggleCadence) {
+      this.btnToggleCadence.textContent = this.realisticCadence ? 'Cadence: Human ⏱️' : 'Cadence: Instant ⚡';
+      if (this.cadenceStatusTag) this.cadenceStatusTag.textContent = this.realisticCadence ? 'Realistic' : 'Instant';
+      this.btnToggleCadence.addEventListener('click', () => {
+        this.realisticCadence = !this.realisticCadence;
+        localStorage.setItem('anaya_realistic_cadence', String(this.realisticCadence));
+        this.btnToggleCadence.textContent = this.realisticCadence ? 'Cadence: Human ⏱️' : 'Cadence: Instant ⚡';
+        if (this.cadenceStatusTag) this.cadenceStatusTag.textContent = this.realisticCadence ? 'Realistic' : 'Instant';
+        this.showToast(this.realisticCadence ? 'Human texting cadence active!' : 'Instant response mode active!', 'info');
+      });
+    }
+
+    if (this.btnTogglePopSound) {
+      this.btnTogglePopSound.textContent = this.soundEffectsEnabled ? 'Pop Audio: On 🔔' : 'Pop Audio: Off 🔕';
+      this.btnTogglePopSound.addEventListener('click', () => {
+        this.soundEffectsEnabled = !this.soundEffectsEnabled;
+        localStorage.setItem('anaya_sound_effects', String(this.soundEffectsEnabled));
+        this.btnTogglePopSound.textContent = this.soundEffectsEnabled ? 'Pop Audio: On 🔔' : 'Pop Audio: Off 🔕';
+        if (this.soundEffectsEnabled) this.playMessagePopSound();
+        this.showToast(this.soundEffectsEnabled ? 'Message pop sounds enabled!' : 'Message pop sounds muted!', 'info');
       });
     }
 
@@ -1024,34 +1057,8 @@ class AnayaApp {
         throw new Error(`HTTP ${res.status}`);
       }
 
-      this.typingIndicator.style.display = 'none';
-
-      // Setup Anaya message row with a burst cluster container
-      const row = document.createElement('div');
-      row.className = 'message-row anaya-row';
-
-      const avatar = document.createElement('img');
-      avatar.src = '/static/images/anaya_avatar.jpg';
-      avatar.alt = 'Anaya';
-      avatar.className = 'msg-avatar';
-      row.appendChild(avatar);
-
-      const cluster = document.createElement('div');
-      cluster.className = 'burst-cluster';
-      row.appendChild(cluster);
-
-      this.messagesContainer.appendChild(row);
-
-      // Active live bubble inside cluster
-      let activeWrapper = document.createElement('div');
-      let activeBubble = document.createElement('div');
-      activeBubble.className = 'message-bubble anaya-bubble burst-bubble';
-      activeWrapper.appendChild(activeBubble);
-      cluster.appendChild(activeWrapper);
-      this.scrollToBottom();
-
       let accumulatedText = '';
-      let currentBurstText = '';
+      let donePayload = null;
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder('utf-8');
@@ -1073,82 +1080,126 @@ class AnayaApp {
               const data = JSON.parse(jsonStr);
               if (data.token) {
                 accumulatedText += data.token;
-
-                // Handle burst delimiter '|||'
-                if (data.token.includes('|||') || currentBurstText.includes('|||')) {
-                  const parts = currentBurstText.split('|||');
-                  const finishedText = parts[0].trim();
-                  activeBubble.textContent = finishedText;
-
-                  // Add Listen button to the finished bubble
-                  if (finishedText && !activeWrapper.querySelector('.btn-audio-listen')) {
-                    const listenBtn = this.createListenButton(finishedText, activeWrapper);
-                    activeWrapper.appendChild(listenBtn);
-                  }
-
-                  // Spawn new bubble for next burst
-                  activeWrapper = document.createElement('div');
-                  activeBubble = document.createElement('div');
-                  activeBubble.className = 'message-bubble anaya-bubble burst-bubble';
-                  activeWrapper.appendChild(activeBubble);
-                  cluster.appendChild(activeWrapper);
-
-                  currentBurstText = parts[1] || '';
-                  activeBubble.textContent = currentBurstText;
-                } else {
-                  currentBurstText += data.token;
-                  activeBubble.textContent = currentBurstText.replace('|||', '').trim();
-                }
-                this.scrollToBottom();
               }
-
               if (data.done) {
-                accumulatedText = data.full_response || accumulatedText;
-                const finalBursts = accumulatedText.split('|||').map((s) => s.trim()).filter(Boolean);
-
-                // Re-render cluster cleanly with timestamp and voice controls
-                cluster.innerHTML = '';
-                const timeNow = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-                finalBursts.forEach((bText, idx) => {
-                  const bWrapper = document.createElement('div');
-                  const bBubble = document.createElement('div');
-                  bBubble.className = 'message-bubble anaya-bubble burst-bubble';
-                  bBubble.textContent = bText;
-
-                  const listenBtn = this.createListenButton(bText, bWrapper);
-
-                  const meta = document.createElement('div');
-                  meta.className = 'msg-meta';
-                  meta.innerHTML = `<span class="msg-time">${timeNow}</span>`;
-
-                  bWrapper.appendChild(bBubble);
-                  bWrapper.appendChild(listenBtn);
-
-                  const musicCard = this.detectAndCreateMusicCard(bText);
-                  if (musicCard) {
-                    bWrapper.appendChild(musicCard);
-                  }
-
-                  bWrapper.appendChild(meta);
-                  cluster.appendChild(bWrapper);
-                });
-
-                this.scrollToBottom();
-
-                // If voice auto-play is enabled: play Neural Voice Note for the message
-                if (this.voiceEnabled && finalBursts.length > 0) {
-                  const firstWrapper = cluster.querySelector('div');
-                  const firstListenBtn = firstWrapper ? firstWrapper.querySelector('.btn-audio-listen') : null;
-                  const speechTarget = finalBursts.join(' ');
-                  this.playNeuralVoiceNote(speechTarget, firstWrapper, firstListenBtn, true);
-                }
+                donePayload = data;
               }
             } catch (err) {
               console.error('Error parsing SSE json:', err);
             }
           }
         }
+      }
+
+      this.typingIndicator.style.display = 'none';
+
+      // Setup Anaya message row with a burst cluster container
+      const row = document.createElement('div');
+      row.className = 'message-row anaya-row';
+
+      const avatar = document.createElement('img');
+      avatar.src = '/static/images/anaya_avatar.jpg';
+      avatar.alt = 'Companion';
+      avatar.className = 'msg-avatar';
+      row.appendChild(avatar);
+
+      const cluster = document.createElement('div');
+      cluster.className = 'burst-cluster';
+      row.appendChild(cluster);
+      this.messagesContainer.appendChild(row);
+
+      const finalBursts = (donePayload?.full_response || accumulatedText)
+        .split('|||')
+        .map((s) => s.trim())
+        .filter(Boolean);
+
+      const timeNow = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+      if (this.realisticCadence && finalBursts.length > 0) {
+        // Sequential human bubble delivery
+        for (let i = 0; i < finalBursts.length; i++) {
+          const bText = finalBursts[i];
+
+          // If not first bubble, show realistic typing indicator delay between thoughts
+          if (i > 0) {
+            this.typingIndicator.style.display = 'flex';
+            if (this.typingLabelText) {
+              const compName = document.getElementById('header-companion-name')?.textContent || 'Anaya';
+              this.typingLabelText.textContent = `${compName} is typing`;
+            }
+            this.scrollToBottom();
+            const delay = Math.min(1300, Math.max(650, bText.length * 18));
+            await new Promise((r) => setTimeout(r, delay));
+            this.typingIndicator.style.display = 'none';
+          }
+
+          const bWrapper = document.createElement('div');
+          const bBubble = document.createElement('div');
+          bBubble.className = 'message-bubble anaya-bubble burst-bubble';
+          bBubble.textContent = bText;
+
+          const listenBtn = this.createListenButton(bText, bWrapper);
+          const meta = document.createElement('div');
+          meta.className = 'msg-meta';
+          meta.innerHTML = `<span class="msg-time">${timeNow}</span>`;
+
+          bWrapper.appendChild(bBubble);
+          bWrapper.appendChild(listenBtn);
+
+          const musicCard = this.detectAndCreateMusicCard(bText);
+          if (musicCard) {
+            bWrapper.appendChild(musicCard);
+          }
+
+          bWrapper.appendChild(meta);
+          cluster.appendChild(bWrapper);
+
+          this.playMessagePopSound();
+          this.scrollToBottom();
+        }
+      } else {
+        // Immediate render fallback
+        finalBursts.forEach((bText) => {
+          const bWrapper = document.createElement('div');
+          const bBubble = document.createElement('div');
+          bBubble.className = 'message-bubble anaya-bubble burst-bubble';
+          bBubble.textContent = bText;
+
+          const listenBtn = this.createListenButton(bText, bWrapper);
+          const meta = document.createElement('div');
+          meta.className = 'msg-meta';
+          meta.innerHTML = `<span class="msg-time">${timeNow}</span>`;
+
+          bWrapper.appendChild(bBubble);
+          bWrapper.appendChild(listenBtn);
+
+          const musicCard = this.detectAndCreateMusicCard(bText);
+          if (musicCard) {
+            bWrapper.appendChild(musicCard);
+          }
+
+          bWrapper.appendChild(meta);
+          cluster.appendChild(bWrapper);
+        });
+        this.playMessagePopSound();
+        this.scrollToBottom();
+      }
+
+      // Check if spontaneous moment was returned by backend
+      if (donePayload?.moment) {
+        const momentCard = this.createInlineMomentCard(donePayload.moment);
+        if (momentCard) {
+          cluster.appendChild(momentCard);
+          this.scrollToBottom();
+        }
+      }
+
+      // If voice auto-play is enabled: play Neural Voice Note for the message
+      if (this.voiceEnabled && finalBursts.length > 0) {
+        const firstWrapper = cluster.querySelector('div');
+        const firstListenBtn = firstWrapper ? firstWrapper.querySelector('.btn-audio-listen') : null;
+        const speechTarget = finalBursts.join(' ');
+        this.playNeuralVoiceNote(speechTarget, firstWrapper, firstListenBtn, true);
       }
 
       // Refresh living status after chat
@@ -2431,6 +2482,70 @@ class AnayaApp {
     } catch (e) {
       this.showToast('Could not start activity: ' + e.message, 'danger');
     }
+  }
+
+  // =========================================================================
+  // Conversational Realism: Audio Pop & Inline Atmospheric Moments
+  // =========================================================================
+
+  playMessagePopSound() {
+    if (!this.soundEffectsEnabled) return;
+    try {
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextClass) return;
+      if (!this.audioCtx) this.audioCtx = new AudioContextClass();
+      if (this.audioCtx.state === 'suspended') this.audioCtx.resume();
+
+      const ctx = this.audioCtx;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(800, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(420, ctx.currentTime + 0.08);
+
+      gain.gain.setValueAtTime(0.04, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.08);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start();
+      osc.stop(ctx.currentTime + 0.09);
+    } catch (e) {
+      // Ignored if browser audio policy prevents sound before interaction
+    }
+  }
+
+  createInlineMomentCard(m) {
+    if (!m) return null;
+    const card = document.createElement('div');
+    card.className = 'inline-moment-card';
+    card.style.cssText = `
+      margin: 8px 0 10px;
+      background: ${m.gradient || 'linear-gradient(135deg, #1e1b4b, #312e81)'};
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 14px;
+      padding: 12px 16px;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+      animation: popFade 0.3s ease-out;
+    `;
+    card.innerHTML = `
+      <span style="font-size: 2.2rem; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));">${m.icon || '📸'}</span>
+      <div style="flex: 1; min-width: 0;">
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 2px;">
+          <span style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.85; font-weight: 600;">Captured Moment • ${this.escapeHtml(m.time_hint || m.period || 'Today')}</span>
+          <span style="font-size: 0.7rem; background: rgba(255,255,255,0.2); padding: 2px 6px; border-radius: 999px;">✨ ${this.escapeHtml(m.mood || 'Cozy')}</span>
+        </div>
+        <h4 style="font-size: 0.95rem; font-weight: 600; margin: 0 0 4px; color: #fff;">${this.escapeHtml(m.title)}</h4>
+        <p style="font-size: 0.84rem; margin: 0; opacity: 0.92; line-height: 1.4; font-style: italic;">"${this.escapeHtml(m.caption)}"</p>
+      </div>
+    `;
+    return card;
   }
 
   // =========================================================================

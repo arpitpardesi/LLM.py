@@ -292,11 +292,23 @@ class PersonaEngine:
         memory_section = ""
         if memories:
             facts_list = [f"• {m.get('key', '')}: {m.get('value', '')}" for m in memories[:config.llm.max_facts_in_prompt]]
+            inside_jokes = [m for m in memories if m.get("category") == "inside_joke" or "joke" in m.get("key", "").lower()]
+            joke_part = ""
+            if inside_jokes:
+                joke_lines = [f"• {j.get('key', '')}: {j.get('value', '')}" for j in inside_jokes[:3]]
+                joke_part = (
+                    f"\nShared Inside Jokes & Banter Callbacks with {self.user_name}:\n"
+                    + "\n".join(joke_lines)
+                    + "\n(Naturally drop subtle callbacks or teasing references to these when relevant—just like real best friends do.)\n"
+                )
+
             if facts_list:
                 memory_section = (
                     f"Important Memories, Shared History & Things You Know About {self.user_name}:\n"
                     + "\n".join(facts_list)
-                    + "\n(Naturally weave these into conversation when relevant. Do not recite them like a checklist.)\n\n"
+                    + "\n(Naturally weave these into conversation when relevant. Do not recite them like a checklist.)\n"
+                    + joke_part
+                    + "\n"
                 )
 
         episodic_section = ""

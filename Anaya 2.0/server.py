@@ -318,11 +318,19 @@ async def chat_endpoint(payload: ChatRequest):
             asyncio.create_task(asyncio.to_thread(memory_engine.extract_and_save_facts, user_text))
 
             music_rec = media_engine.detect_song_recommendation(full_response.strip())
+
+            # Detect if user inquired about her day, activity, or ambient snapshot
+            user_lower = user_text.lower()
+            moment = None
+            if any(k in user_lower for k in ["what are you doing", "what're you doing", "what are you up to", "where are you", "send a pic", "send pic", "send photo", "how's your day", "what's the vibe"]):
+                moment = media_engine.get_current_moment()
+
             done_payload = json.dumps({
                 "done": True,
                 "full_response": full_response.strip(),
                 "mood": mood_engine.get_current_mood(),
-                "media": music_rec
+                "media": music_rec,
+                "moment": moment
             })
             yield f"data: {done_payload}\n\n"
         except Exception as e:

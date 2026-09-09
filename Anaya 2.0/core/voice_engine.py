@@ -8,6 +8,7 @@ import os
 import re
 import hashlib
 import asyncio
+import datetime
 from pathlib import Path
 from typing import Dict, Any, Optional, List
 
@@ -100,11 +101,17 @@ class VoiceEngine:
         # Clean multiple spaces and newlines
         clean = re.sub(r"\s+", " ", clean).strip()
 
+        # Natural speech pause smoothing: convert trailing ... or -- into gentle pause comma
+        clean = re.sub(r"\.{2,}", ", ", clean)
+        clean = re.sub(r"\s*--\s*", ", ", clean)
+        clean = re.sub(r"\s*,\s*,+", ", ", clean)
+
         return clean
 
     async def synthesize(self, text: str, voice: Optional[str] = None) -> Optional[Dict[str, Any]]:
         """
         Generates or retrieves cached MP3 audio for given text.
+        Applies natural time-of-day vocal cadence (softer, slower at midnight; lively during day).
         Returns audio URL, duration estimate, and metadata.
         """
         clean = self.clean_text_for_speech(text)
@@ -118,8 +125,23 @@ class VoiceEngine:
         if chosen_voice not in valid_voice_ids:
             chosen_voice = self.default_voice
 
-        # Create unique MD5 hash for (voice + cleaned text)
-        hash_input = f"{chosen_voice}:{clean}".encode("utf-8")
+        # Temporal vocal inflection & cadence
+        now = datetime.datetime.now()
+        hour = now.hour
+        if hour >= 23 or hour < 6:
+            # Late night: softer, slightly slower, cozy intimate tone
+            rate_mod = "-3%"
+            pitch_mod = "-2Hz"
+        elif 12 <= hour < 17:
+            # Afternoon: bright, conversational energy
+            rate_mod = "+1%"
+            pitch_mod = "+1Hz"
+        else:
+            rate_mod = "+0%"
+            pitch_mod = "+0Hz"
+
+        # Create unique MD5 hash for (voice + cleaned text + rate + pitch)
+        hash_input = f"{chosen_voice}:{clean}:{rate_mod}:{pitch_mod}".encode("utf-8")
         file_hash = hashlib.md5(hash_input).hexdigest()
         filename = f"anaya_{file_hash}.mp3"
         file_path = self.audio_dir / filename
@@ -135,7 +157,7 @@ class VoiceEngine:
 
         try:
             import edge_tts
-            communicate = edge_tts.Communicate(clean, chosen_voice)
+            communicate = edge_tts.Communicate(clean, chosen_voice, rate=rate_mod, pitch=pitch_mod)
             await communicate.save(str(file_path))
 
             # Standardize MP3 encoding to 44.1kHz stereo to ensure universal browser & CoreAudio compatibility
