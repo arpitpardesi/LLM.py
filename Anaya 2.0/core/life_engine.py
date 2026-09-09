@@ -145,12 +145,18 @@ class LifeEngine:
         # Refresh activity every 2 hours or if period changed
         need_refresh = True
         if updated_at:
-            if hasattr(updated_at, "tzinfo") and updated_at.tzinfo:
-                diff = datetime.datetime.now(datetime.timezone.utc) - updated_at
-            else:
-                diff = datetime.datetime.utcnow() - updated_at
-            if diff.total_seconds() < 7200 and state.get("current_activity"):
-                need_refresh = False
+            if isinstance(updated_at, str):
+                try:
+                    updated_at = datetime.datetime.fromisoformat(updated_at)
+                except Exception:
+                    updated_at = None
+            if updated_at:
+                if hasattr(updated_at, "tzinfo") and updated_at.tzinfo:
+                    diff = datetime.datetime.now(datetime.timezone.utc) - updated_at
+                else:
+                    diff = datetime.datetime.utcnow() - updated_at
+                if diff.total_seconds() < 7200 and state.get("current_activity"):
+                    need_refresh = False
 
         if need_refresh:
             chosen = random.choice(options)

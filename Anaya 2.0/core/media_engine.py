@@ -71,9 +71,9 @@ class MediaEngine:
         if match:
             title = match.group(1).strip()
             artist = match.group(2).strip()
-            # Clean possible markdown asterisks
-            title = re.sub(r"[\*\_]", "", title).strip()
-            artist = re.sub(r"[\*\_]", "", artist).strip()
+            # Clean possible markdown asterisks and surrounding quotes
+            title = re.sub(r"[\*\_]", "", title).strip("\"' ")
+            artist = re.sub(r"[\*\_]", "", artist).strip("\"' ")
 
             if len(title) >= 2 and len(artist) >= 2:
                 query = f"{title} {artist}"

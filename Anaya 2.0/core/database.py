@@ -916,6 +916,11 @@ class DatabaseManager:
                     if isinstance(state_data, dict):
                         if "_id" in state_data:
                             del state_data["_id"]
+                        if "updated_at" in state_data and isinstance(state_data["updated_at"], str):
+                            try:
+                                state_data["updated_at"] = datetime.datetime.fromisoformat(state_data["updated_at"])
+                            except Exception:
+                                state_data["updated_at"] = datetime.datetime.now(datetime.timezone.utc)
                         self.state_col.update_one({"singleton_id": "anaya_state"}, {"$set": state_data}, upsert=True)
 
                 # Restore personality.txt
