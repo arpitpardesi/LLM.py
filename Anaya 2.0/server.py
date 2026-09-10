@@ -303,12 +303,23 @@ async def chat_endpoint(payload: ChatRequest):
                 yield f"data: {event_payload}\n\n"
                 await asyncio.sleep(0.005)  # Tiny yield pause for smooth client rendering
 
-            # 5. Save assistant response
-            if full_response.strip():
+            # 5. Clean & Sanitize assistant response
+            cleaned_response = full_response.strip()
+            for p in ["assistant:\n", "assistant:", "anaya:\n", "anaya:", "bot:\n", "bot:"]:
+                if cleaned_response.lower().startswith(p):
+                    cleaned_response = cleaned_response[len(p):].lstrip()
+
+            # Strip any accidental roleplay action asterisks (*smiles*, *laughs*, etc.)
+            cleaned_response = re.sub(r"\*[^*]+\*", "", cleaned_response)
+            # Clean trailing and redundant '|||' delimiters
+            cleaned_response = re.sub(r"(\s*\|\|\|\s*)+$", "", cleaned_response)
+            cleaned_response = re.sub(r"(\|\|\|\s*)+", " ||| ", cleaned_response).strip()
+
+            if cleaned_response:
                 bot_dialog_id = db_manager.get_next_dialog_id()
                 db_manager.save_message(
                     role="assistant",
-                    content=full_response.strip(),
+                    content=cleaned_response,
                     session_id=session_id,
                     dialog_id=bot_dialog_id
                 )
@@ -317,7 +328,7 @@ async def chat_endpoint(payload: ChatRequest):
             # only AFTER streaming finishes to eliminate GPU contention and stuttering!
             asyncio.create_task(asyncio.to_thread(memory_engine.extract_and_save_facts, user_text))
 
-            music_rec = media_engine.detect_song_recommendation(full_response.strip())
+            music_rec = media_engine.detect_song_recommendation(cleaned_response)
 
             # Detect if user inquired about her day, activity, or ambient snapshot
             user_lower = user_text.lower()
@@ -327,7 +338,7 @@ async def chat_endpoint(payload: ChatRequest):
 
             done_payload = json.dumps({
                 "done": True,
-                "full_response": full_response.strip(),
+                "full_response": cleaned_response,
                 "mood": mood_engine.get_current_mood(),
                 "media": music_rec,
                 "moment": moment

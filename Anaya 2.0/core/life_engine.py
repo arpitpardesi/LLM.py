@@ -180,14 +180,9 @@ class LifeEngine:
         period = self.get_current_period()
 
         return (
-            f"Anaya's Current Personal Life Context (Right Now):\n"
-            f"- Time phase: {period.replace('_', ' ').capitalize()}\n"
-            f"- What she was doing when Arpit messaged: {info['activity']}.\n"
-            f"- What she was listening to: {info['music']}.\n"
-            f"- What was on her mind: {info['thoughts']}.\n"
-            f"- Her immediate personal vibe: {info['vibe']}.\n"
-            f"(Feel free to naturally weave in or mention what you were doing if Arpit asks 'what are you doing?', "
-            f"'what's up?', or if it naturally fits the conversation like real friends sharing their day.)"
+            f"INTERNAL PERSONAL REALITY (DO NOT RECITE UNPROMPTED):\n"
+            f"Right now in your apartment, you were: {info['activity']}, listening to {info['music']}, with this on your mind: \"{info['thoughts']}\" ({info['vibe']} vibe).\n"
+            f"CRITICAL RULE: Keep this strictly in your own mind! NEVER volunteer or list this background context unless Arpit specifically asks 'what are you doing?', 'what's up?', or 'what are you listening to?'. If he is talking about his day, work, or feelings, give 100% of your attention to him!"
         )
 
 

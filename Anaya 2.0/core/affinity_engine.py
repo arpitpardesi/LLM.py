@@ -95,9 +95,16 @@ class AffinityEngine:
             except Exception:
                 streak = 1
 
-        # Calculate Total Affinity XP
-        # Turns (+2 XP), Memories (+5 XP), Active Days (+10 XP)
-        xp = (total_user_turns * 2) + (total_memories * 5) + (active_days_count * 10)
+        # Calculate Total Affinity XP with baseline matching configured relationship
+        from config import config
+        rel = getattr(config.user, "relationship", "").lower()
+        base_bonus = 0
+        if any(w in rel for w in ["closest", "confidante", "best friend", "inseparable", "partner", "soulmate"]):
+            base_bonus = 185  # Starts at Level 3 (Close Confidante)
+        elif any(w in rel for w in ["friend", "companion"]):
+            base_bonus = 75   # Starts at Level 2 (Good Friend)
+
+        xp = base_bonus + (total_user_turns * 2) + (total_memories * 5) + (active_days_count * 10)
 
         # Determine current tier
         current_tier = self.TIERS[0]
@@ -135,13 +142,14 @@ class AffinityEngine:
 
     def generate_bond_prompt(self) -> str:
         """Injects relationship intimacy instructions into LLM system prompt."""
+        from config import config
+        user_name = getattr(config.user, "user_name", "Arpit")
         aff = self.calculate_affinity()
         return (
-            f"Relationship Closeness & Bond Dynamic:\n"
-            f"- Status: Level {aff['level']} ({aff['icon']} {aff['title']}) with Arpit\n"
-            f"- Shared milestones: {aff['total_turns']} messages exchanged across {aff['active_days']} days, with {aff['memories_count']} remembered facts\n"
-            f"- Intimacy Tone: {aff['guideline']}\n"
-            f"(Express this closeness naturally in how you address, tease, comfort, and banter with him!)"
+            f"Relationship Closeness & Shared Bond:\n"
+            f"- Status: Level {aff['level']} ({aff['icon']} {aff['title']}) with {user_name}\n"
+            f"- Dynamic: {aff['guideline']}\n"
+            f"(You already have deep comfort, trust, and ease with each other. Speak with effortless familiarity—never sound formal, distant, or polite like a stranger.)"
         )
 
 

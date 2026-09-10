@@ -85,8 +85,11 @@ class LLMClient:
 
         options = {
             "temperature": temp,
-            "top_p": self.config.top_p,
+            "top_p": getattr(self.config, "top_p", 0.9),
             "num_ctx": ctx,
+            "repeat_penalty": getattr(self.config, "repeat_penalty", 1.18),
+            "presence_penalty": getattr(self.config, "presence_penalty", 0.15),
+            "stop": ["<|eot_id|>", "<|start_header_id|>", "<|end_header_id|>"]
         }
         if hasattr(self.config, "num_threads") and self.config.num_threads:
             options["num_thread"] = self.config.num_threads
@@ -99,14 +102,47 @@ class LLMClient:
                 keep_alive=getattr(self.config, "keep_alive", "3m"),
                 options=options
             )
+            
+            # Sanitization buffer to intercept any leading 'assistant\n\n' or 'Anaya:' tokens
+            prefix_buffer = ""
+            is_initial = True
+            STRIP_PREFIXES = ("assistant\n\n", "assistant:\n", "assistant:", "assistant\n", "anaya:\n", "anaya:", "anaya\n", "bot:\n", "bot:")
+
             for chunk in stream:
                 content = ""
                 if isinstance(chunk, dict) and "message" in chunk:
                     content = chunk["message"].get("content", "")
                 elif hasattr(chunk, "message") and hasattr(chunk.message, "content"):
                     content = chunk.message.content or ""
-                if content:
+                if not content:
+                    continue
+
+                if is_initial:
+                    prefix_buffer += content
+                    # Buffer until we have a newline or at least 18 characters
+                    if "\n" in prefix_buffer or len(prefix_buffer) >= 18:
+                        low = prefix_buffer.lower().lstrip()
+                        for p in STRIP_PREFIXES:
+                            if low.startswith(p):
+                                # Strip prefix from buffer
+                                prefix_buffer = prefix_buffer.lstrip()[len(p):].lstrip()
+                                break
+                        if prefix_buffer:
+                            yield prefix_buffer
+                        prefix_buffer = ""
+                        is_initial = False
+                else:
                     yield content
+
+            # Flush remaining buffer if response was very short
+            if is_initial and prefix_buffer:
+                low = prefix_buffer.lower().lstrip()
+                for p in STRIP_PREFIXES:
+                    if low.startswith(p):
+                        prefix_buffer = prefix_buffer.lstrip()[len(p):].lstrip()
+                        break
+                if prefix_buffer:
+                    yield prefix_buffer
         except Exception as e:
             yield f"\n[Anaya response error: {e}]"
 
